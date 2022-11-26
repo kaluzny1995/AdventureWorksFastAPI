@@ -1,0 +1,15 @@
+{
+  "app_run": {
+    "host": "127.0.0.1",
+    "port": 8080,
+    "reload": true,
+    "log_level": "debug"
+  },
+  "postgresdb_connection": {
+    "username": "postgres",
+    "password": "my_password",
+    "host": "localhost",
+    "port": 5452,
+    "database": "postgres"
+  }
+}
