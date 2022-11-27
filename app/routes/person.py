@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body
 from typing import List
 
 from app import errors
 from app.models import PersonInput, Person, Message
 from app.providers import PersonProvider
+
+from app.error_handlers import raise_404, raise_500
+
 
 router = APIRouter()
 
@@ -15,12 +18,7 @@ def get_persons(offset: int = 0, limit: int = 10) -> List[Person]:
         persons = person_provider.get_persons(limit, offset)
         return persons
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.get("/get_person/{person_id}", tags=["Persons"],
@@ -31,19 +29,9 @@ def get_person(person_id: int) -> Person:
         person = person_provider.get_person(person_id)
         return person
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Person not found",
-                                "detail": f"Person of given id {person_id} was not found."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Person", person_id)
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.post("/create_person", tags=["Persons"],
@@ -56,12 +44,7 @@ def create_person(
         new_person = person_provider.get_person(new_person_id)
         return new_person
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.put("/update_person/{person_id}", tags=["Persons"],
@@ -75,19 +58,9 @@ def update_person(person_id: int,
         updated_person = person_provider.get_person(updated_person_id)
         return updated_person
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Person not found",
-                                "detail": f"Person of given id {person_id} was not found."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Person", person_id)
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.delete("/delete_person/{person_id}", tags=["Persons"],
@@ -98,16 +71,6 @@ def delete_person(person_id: int) -> Message:
         person_provider.delete_person(person_id)
         return Message(info="Person deleted", message=f"Person of given id {person_id} deleted.")
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Person not found",
-                                "detail": f"Person of given id {person_id} was not found."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Person", person_id)
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)

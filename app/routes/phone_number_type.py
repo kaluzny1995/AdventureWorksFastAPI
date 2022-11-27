@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body
 from typing import List
 
 from app import errors
 from app.models import PhoneNumberTypeInput, PhoneNumberType, Message
 from app.providers import PhoneNumberTypeProvider
+
+from app.error_handlers import raise_404, raise_500
+
 
 router = APIRouter()
 
@@ -16,12 +19,7 @@ def get_phone_number_types(offset: int = 0, limit: int = 10) -> List[PhoneNumber
         phone_number_types = phone_number_type_provider.get_phone_number_types(limit, offset)
         return phone_number_types
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.get("/get_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
@@ -32,19 +30,9 @@ def get_phone_number_type(phone_number_type_id: int) -> PhoneNumberType:
         phone_number_type = phone_number_type_provider.get_phone_number_type(phone_number_type_id)
         return phone_number_type
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Phone number type not found",
-                                "detail": f"Phone number type of given id {phone_number_type_id} was not found."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Phone number type", phone_number_type_id)
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.post("/create_phone_number_type", tags=["Phone Number Types"],
@@ -56,12 +44,7 @@ def create_phone_number_type(phone_number_type_input: PhoneNumberTypeInput = Bod
         new_phone_number_type = phone_number_type_provider.get_phone_number_type(new_phone_number_type_id)
         return new_phone_number_type
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.put("/update_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
@@ -75,19 +58,9 @@ def update_phone_number_type(phone_number_type_id: int,
         updated_phone_number_type = phone_number_type_provider.get_phone_number_type(updated_phone_number_type_id)
         return updated_phone_number_type
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Phone number type not found",
-                                "detail": f"Phone number type of given id {phone_number_type_id} was not found."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Phone number type", phone_number_type_id)
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.delete("/delete_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
@@ -99,16 +72,6 @@ def delete_phone_number_type(phone_number_type_id: int) -> Message:
         return Message(info="Phone number type deleted",
                        message=f"Phone number type of given id {phone_number_type_id} deleted.")
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Phone number type not found",
-                                "detail": f"Phone number type of given id {phone_number_type_id} was not found."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Phone number type", phone_number_type_id)
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)

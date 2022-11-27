@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from typing import Optional, List
 
 from app import errors
 from app.models import Message, TableMetadata
 from app.providers import TableMetadataProvider
+
+from app.error_handlers import raise_404, raise_500
 
 
 router = APIRouter()
@@ -16,12 +18,7 @@ def get_table_names() -> List[str]:
         table_names = table_metadata_provider.get_table_names()
         return table_names
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
 
 
 @router.get("/table/metadatas", tags=["Tables"],
@@ -32,17 +29,9 @@ def get_table_metadatas(schema_name: Optional[str] = None, table_name: Optional[
         table_metadatas = table_metadata_provider.get_table_details(schema_name, table_name)
         return table_metadatas
     except errors.NotFoundError as e:
-        raise HTTPException(status_code=404,
-                            detail={
-                                "info": "Tables not found",
-                                "detail": f"No tables found for given criteria "
-                                          f"(schema_name: {schema_name} | table_name: {table_name})."
-                            },
-                            headers={"message": str(e)})
+        raise_404(e, "Tables", "all",
+                  info="Tables not found",
+                  detail=f"No tables found for given criteria "
+                         f"(schema_name: {schema_name} | table_name: {table_name}).")
     except Exception as e:
-        raise HTTPException(status_code=500,
-                            detail={
-                                "info": "Internal error occurred.",
-                                "detail": f"An internal error occurred: {str(e)}"
-                            },
-                            headers={"message": str(e)})
+        raise_500(e)
