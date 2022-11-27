@@ -25,8 +25,8 @@ def get_phone_number_types(offset: int = 0, limit: int = 10) -> List[PhoneNumber
 @router.get("/get_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
             responses={200: {"model": PhoneNumberType}, 404: {"model": Message}, 500: {"model": Message}})
 def get_phone_number_type(phone_number_type_id: int) -> PhoneNumberType:
-    phone_number_type_provider = PhoneNumberTypeProvider()
     try:
+        phone_number_type_provider = PhoneNumberTypeProvider()
         phone_number_type = phone_number_type_provider.get_phone_number_type(phone_number_type_id)
         return phone_number_type
     except errors.NotFoundError as e:

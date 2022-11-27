@@ -39,14 +39,14 @@ class PhoneNumberTypeProvider:
         return phone_number_type_id
 
     def update_phone_number_type(self, phone_number_type_id: int, phone_number_type_input: PhoneNumberTypeInput) -> int:
-        updated_phone_number_type_id = self.get_phone_number_type(phone_number_type_id)
-        updated_phone_number_type_id.update_from_input(phone_number_type_input)
-        updated_phone_number_type_id.modified_date = dt.datetime.utcnow()
+        updated_phone_number_type = self.get_phone_number_type(phone_number_type_id)
+        updated_phone_number_type.update_from_input(phone_number_type_input)
+        updated_phone_number_type.modified_date = dt.datetime.utcnow()
         with Session(self.db_engine) as db_session:
-            db_session.add(updated_phone_number_type_id)
+            db_session.add(updated_phone_number_type)
             db_session.commit()
-            db_session.refresh(updated_phone_number_type_id)
-        return updated_phone_number_type_id.phone_number_type_id
+            db_session.refresh(updated_phone_number_type)
+        return updated_phone_number_type.phone_number_type_id
 
     def delete_phone_number_type(self, phone_number_type_id: int) -> None:
         deleted_phone_number_type = self.get_phone_number_type(phone_number_type_id)

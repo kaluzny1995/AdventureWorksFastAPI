@@ -24,8 +24,8 @@ def get_persons(offset: int = 0, limit: int = 10) -> List[Person]:
 @router.get("/get_person/{person_id}", tags=["Persons"],
             responses={200: {"model": Person}, 404: {"model": Message}, 500: {"model": Message}})
 def get_person(person_id: int) -> Person:
-    person_provider = PersonProvider()
     try:
+        person_provider = PersonProvider()
         person = person_provider.get_person(person_id)
         return person
     except errors.NotFoundError as e:

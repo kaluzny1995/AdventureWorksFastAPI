@@ -9,3 +9,4 @@ from app.models.business_entity import BusinessEntity
 from app.models.person import Person, PersonInput
 
 from app.models.phone_number_type import PhoneNumberType, PhoneNumberTypeInput
+from app.models.person_phone import PersonPhone, PersonPhoneInput
