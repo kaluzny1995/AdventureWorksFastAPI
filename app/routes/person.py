@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Body
-from typing import List
+from typing import Optional, List
 
 from app import errors
 from app.models import PersonInput, Person, Message
 from app.providers import PersonProvider
+from app.services import PersonService
 
 from app.error_handlers import raise_404, raise_500
 
@@ -72,5 +73,25 @@ def delete_person(person_id: int) -> Message:
         return Message(info="Person deleted", message=f"Person of given id {person_id} deleted.")
     except errors.NotFoundError as e:
         raise_404(e, "Person", person_id)
+    except Exception as e:
+        raise_500(e)
+
+
+@router.get("/search_by_phrases", tags=["Persons"],
+            responses={200: {"model": List[Person]}, 404: {"model": Message}, 500: {"model": Message}})
+def search_by_phrases(first_name_phrase: Optional[str] = None, last_name_phrase: Optional[str] = None):
+    try:
+        person_service = PersonService()
+        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase)
+        return persons
+    except errors.EmptyFieldsError as e:
+        raise_404(e, "Persons", "all",
+                  info="No phrases provided",
+                  detail=f"Searching impossible. Provide a phrase for first and/or last name.")
+    except errors.NotFoundError as e:
+        raise_404(e, "Persons", "all",
+                  info="Persons not found",
+                  detail=f"No persons found for given phrases"
+                         f"(first_name_phrase: {first_name_phrase} | last_name_phrase: {last_name_phrase}).")
     except Exception as e:
         raise_500(e)

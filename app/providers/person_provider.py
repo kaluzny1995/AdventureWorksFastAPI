@@ -13,7 +13,7 @@ class PersonProvider:
     business_entity_provider: BusinessEntityProvider = BusinessEntityProvider()
     db_engine = create_engine(connection_string)
 
-    def get_persons(self, limit: Optional[int], offset: Optional[int]) -> List[Person]:
+    def get_persons(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
         with Session(self.db_engine) as db_session:
             statement = select(Person)
             if offset is not None:

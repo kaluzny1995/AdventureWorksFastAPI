@@ -6,3 +6,8 @@ class NotFoundError(Exception):
 class IntegrityError(Exception):
     """ Raised when the insertion/update violates some object db constraints """
     pass
+
+
+class EmptyFieldsError(Exception):
+    """ Raised when all or certain group of fields are empty """
+    pass
