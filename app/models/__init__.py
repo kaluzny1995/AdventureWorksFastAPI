@@ -1,3 +1,5 @@
+from app.models.jwt_authentication import Token, TokenData, User, UserInDB
+
 from app.models.message import Message
 
 from app.models.e_person_type import EPersonType

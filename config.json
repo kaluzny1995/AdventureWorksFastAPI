@@ -11,5 +11,10 @@
     "host": "localhost",
     "port": 5452,
     "database": "postgres"
+  },
+  "jwt_auth_config": {
+    "secret_key": "akilkutuklika",
+    "algorithm": "HS256",
+    "access_token_expire_minutes": 30
   }
 }
