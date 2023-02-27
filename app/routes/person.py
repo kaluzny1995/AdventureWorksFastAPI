@@ -79,7 +79,7 @@ def delete_person(person_id: int) -> Message:
 
 @router.get("/search_by_phrases", tags=["Persons"],
             responses={200: {"model": List[Person]}, 404: {"model": Message}, 500: {"model": Message}})
-def search_by_phrases(first_name_phrase: Optional[str] = None, last_name_phrase: Optional[str] = None):
+def search_by_phrases(first_name_phrase: Optional[str] = None, last_name_phrase: Optional[str] = None) -> List[Person]:
     try:
         person_service = PersonService()
         persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase)
