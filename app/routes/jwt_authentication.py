@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
 from typing import Dict
-import datetime as dt
 
-from app.config import JWTAuthenticationConfig
-from app.models import User, UserInDB, Token, TokenData
+from app import errors
+from app.models import User, UserInDB, Token, Message
 from app.services import JWTAuthenticationService
+from app.error_handlers import raise_400, raise_401, raise_500
 
 from app.temp_db import temp_users_db
 
@@ -17,60 +16,58 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
-    jwt_auth_config = JWTAuthenticationConfig.from_json()
     jwt_auth_service = JWTAuthenticationService()
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
     try:
-        payload = jwt.decode(token, jwt_auth_config.secret_key, algorithms=[jwt_auth_config.algorithm])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    user = jwt_auth_service.get_user(temp_users_db, username=token_data.username)
-    if user is None:
-        raise credentials_exception
+        user = jwt_auth_service.get_user_from_token(token)
+        return user
 
-    return user
+    except errors.JWTTokenSignatureExpiredError as e:
+        raise_401(e)
+    except errors.InvalidCredentialsError as e:
+        raise_401(e)
+    except Exception as e:
+        raise_500(e)
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise_400(Exception(f"{current_user.username}, Current user is inactive."))
     return current_user
 
 
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=Token, include_in_schema=False)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
-    jwt_auth_config = JWTAuthenticationConfig.from_json()
     jwt_auth_service = JWTAuthenticationService()
+    credentials_exception = errors.InvalidCredentialsError("Incorrect username or password.")
 
     user = jwt_auth_service.authenticate_user(temp_users_db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if user is None:
+        raise_401(credentials_exception)
 
-    access_token_expires = dt.timedelta(minutes=jwt_auth_config.access_token_expire_minutes)
-    access_token = jwt_auth_service.create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    access_token = jwt_auth_service.create_access_token(data={"sub": user.username})
     token_dict = {"access_token": access_token, "token_type": "bearer"}
 
     return Token(**token_dict)
 
 
-@router.get("/jwt_auth_test", tags=["JWT Authentication Test"])
-def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
-    return dict(message="JWT Authentication works!", token=token)
+@router.get("/jwt_auth_test", tags=["JWT Authentication Test"],
+            responses={200: {"model": Dict[str, str]}, 401: {"model": Message}, 500: {"model": Message}})
+async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
+    jwt_auth_service = JWTAuthenticationService()
+
+    try:
+        jwt_auth_service.get_access_token_payload(token)
+        return dict(message="JWT Authentication works!", token=token)
+
+    except errors.JWTTokenSignatureExpiredError as e:
+        raise_401(e)
+    except Exception as e:
+        raise_500(e)
 
 
-@router.get("/current_user", response_model=User, tags=["JWT Authentication Test"])
+@router.get("/current_user", tags=["JWT Authentication Test"],
+            responses={200: {"model": User}, 400: {"model": Message},
+                       401: {"model": Message}, 500: {"model": Message}})
 async def read_users_me(current_user: User = Depends(get_current_active_user)) -> User:
     return current_user

@@ -1,3 +1,13 @@
+class InvalidCredentialsError(Exception):
+    """ Raised when user authentication failed """
+    pass
+
+
+class JWTTokenSignatureExpiredError(Exception):
+    """ Raised when JWT token signature expired """
+    pass
+
+
 class NotFoundError(Exception):
     """ Raised when the requested document does not exist """
     pass

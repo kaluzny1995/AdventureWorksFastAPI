@@ -2,6 +2,10 @@ import re
 from typing import Dict
 
 
+def get_username_from_message(error_message: str) -> str:
+    return error_message.split(",")[0]
+
+
 def get_foreign_key_violence_details(error_message: str) -> Dict[str, str]:
     line_of_interest = error_message.split("\n")[1]
 
