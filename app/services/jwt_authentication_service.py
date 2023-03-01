@@ -65,3 +65,5 @@ class JWTAuthenticationService:
             return jwt.decode(encoded_jwt, self.jwt_auth_config.secret_key, algorithms=[self.jwt_auth_config.algorithm])
         except ExpiredSignatureError:
             raise errors.JWTTokenSignatureExpiredError("JWT token signature expired.")
+        except JWTError:
+            raise errors.InvalidCredentialsError("Could not validate credentials.")

@@ -51,6 +51,22 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return Token(**token_dict)
 
 
+@router.get("/test", include_in_schema=False,
+            responses={200: {"model": Dict[str, str]}, 401: {"model": Dict[str, str]}, 500: {"model": Message}})
+async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
+    jwt_auth_service = JWTAuthenticationService()
+
+    try:
+        jwt_auth_service.get_access_token_payload(token)
+        return dict(message="Authenticated")
+    except errors.JWTTokenSignatureExpiredError:
+        return dict(message="Expired")
+    except errors.InvalidCredentialsError:
+        return dict(message="Unauthenticated")
+    except Exception as e:
+        raise_500(e)
+
+
 @router.get("/jwt_auth_test", tags=["JWT Authentication Test"],
             responses={200: {"model": Dict[str, str]}, 401: {"model": Message}, 500: {"model": Message}})
 async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
@@ -61,6 +77,8 @@ async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
         return dict(message="JWT Authentication works!", token=token)
 
     except errors.JWTTokenSignatureExpiredError as e:
+        raise_401(e)
+    except errors.InvalidCredentialsError as e:
         raise_401(e)
     except Exception as e:
         raise_500(e)

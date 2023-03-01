@@ -1,5 +1,6 @@
 import traceback
 from fastapi import Request, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, StarletteHTTPException
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from typing import Optional
@@ -75,6 +76,12 @@ def raise_500(e: Exception):
 
 
 async def custom_http_error_handler(request: Request, exc: StarletteHTTPException):
+
+    if request.url.path == "/test" and exc.status_code == status.HTTP_401_UNAUTHORIZED:
+        # executed only for "/test" url endpoint, which checks the authentication status
+        # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" message
+        return JSONResponse(status_code=200, content=dict(message="Unauthenticated"))
+
     print(f"Error occurred. {str(exc)}")
     if exc.status_code == status.HTTP_400_BAD_REQUEST:
         print("The request contains bad information.")
