@@ -1,4 +1,5 @@
 from app.models.jwt_authentication import Token, TokenData, User, UserInDB
+from app.models.e_authentication_status import EAuthenticationStatus
 
 from app.models.message import Message
 

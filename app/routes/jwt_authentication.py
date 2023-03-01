@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Dict
 
 from app import errors
-from app.models import User, UserInDB, Token, Message
+from app.models import User, UserInDB, Token, Message, EAuthenticationStatus
 from app.services import JWTAuthenticationService
 from app.error_handlers import raise_400, raise_401, raise_500
 
@@ -58,11 +58,11 @@ async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
 
     try:
         jwt_auth_service.get_access_token_payload(token)
-        return dict(message="Authenticated")
+        return dict(message=EAuthenticationStatus.AUTHENTICATED)
     except errors.JWTTokenSignatureExpiredError:
-        return dict(message="Expired")
+        return dict(message=EAuthenticationStatus.EXPIRED)
     except errors.InvalidCredentialsError:
-        return dict(message="Unauthenticated")
+        return dict(message=EAuthenticationStatus.UNAUTHENTICATED)
     except Exception as e:
         raise_500(e)
 

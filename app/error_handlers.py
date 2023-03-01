@@ -6,6 +6,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 from typing import Optional
 
 from app import utils
+from app.models import EAuthenticationStatus
 
 
 def raise_400(e: Exception):
@@ -80,7 +81,7 @@ async def custom_http_error_handler(request: Request, exc: StarletteHTTPExceptio
     if request.url.path == "/test" and exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # executed only for "/test" url endpoint, which checks the authentication status
         # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" message
-        return JSONResponse(status_code=200, content=dict(message="Unauthenticated"))
+        return JSONResponse(status_code=200, content=dict(message=EAuthenticationStatus.UNAUTHENTICATED))
 
     print(f"Error occurred. {str(exc)}")
     if exc.status_code == status.HTTP_400_BAD_REQUEST:
