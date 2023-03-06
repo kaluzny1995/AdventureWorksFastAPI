@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Dict
 
 from app import errors
-from app.models import User, UserInDB, Token, Message, EAuthenticationStatus
+from app.models import UserInput, User, Token, Message, EAuthenticationStatus
 from app.services import JWTAuthenticationService
 from app.error_handlers import raise_400, raise_401, raise_500
 
@@ -15,7 +15,7 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     jwt_auth_service = JWTAuthenticationService()
 
     try:
@@ -30,8 +30,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
         raise_500(e)
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.disabled:
+async def get_current_active_user(current_user: UserInput = Depends(get_current_user)) -> UserInput:
+    if current_user.is_disabled:
         raise_400(Exception(f"{current_user.username}, Current user is inactive."))
     return current_user
 
@@ -85,7 +85,7 @@ async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
 
 
 @router.get("/current_user", tags=["JWT Authentication Test"],
-            responses={200: {"model": User}, 400: {"model": Message},
+            responses={200: {"model": UserInput}, 400: {"model": Message},
                        401: {"model": Message}, 500: {"model": Message}})
-async def read_users_me(current_user: User = Depends(get_current_active_user)) -> User:
+async def read_users_me(current_user: UserInput = Depends(get_current_active_user)) -> UserInput:
     return current_user

@@ -12,6 +12,13 @@
     "port": 5452,
     "database": "postgres"
   },
+  "mongodb_connection": {
+    "username": "mongo_admin",
+    "password": "mongo_admin",
+    "host": "localhost",
+    "port": 27017,
+    "database": "awfapi"
+  },
   "jwt_auth_config": {
     "secret_key": "akilkutuklika",
     "algorithm": "HS256",

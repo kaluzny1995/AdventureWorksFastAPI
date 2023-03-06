@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError, StarletteHTTPException
 
-from app.routes import main_router, jwt_auth_router, \
+from app.routes import main_router, awfapi_user_router, jwt_auth_router, \
     table_router, person_router, phone_number_type_router, person_phone_router
 from app.error_handlers import custom_http_error_handler, custom_request_validation_error_handler
 
@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(main_router)
+app.include_router(awfapi_user_router)
 app.include_router(jwt_auth_router)
 app.include_router(table_router)
 app.include_router(person_router)

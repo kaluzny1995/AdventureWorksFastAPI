@@ -1,3 +1,4 @@
 from app.config.app_run_config import AppRunConfig
 from app.config.postgresdb_connection_config import PostgresdbConnectionConfig
+from app.config.mongodb_connection_config import MongodbConnectionConfig
 from app.config.jwt_authentication_config import JWTAuthenticationConfig

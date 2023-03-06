@@ -5,7 +5,7 @@ import datetime as dt
 
 from app import errors
 from app.config import JWTAuthenticationConfig
-from app.models.jwt_authentication import UserInDB, TokenData
+from app.models.jwt_authentication import User, TokenData
 
 from app.temp_db import temp_users_db
 
@@ -20,13 +20,13 @@ class JWTAuthenticationService:
     def get_password_hash(self, password: str) -> str:
         return self.pwd_context.hash(password)
 
-    def get_user(self, db: dict, username: str) -> Optional[UserInDB]:
+    def get_user(self, db: dict, username: str) -> Optional[User]:
         if username in db:
             user_dict = db[username]
-            return UserInDB(**user_dict)
+            return User(**user_dict)
         return None
 
-    def authenticate_user(self, db: dict, username: str, password: str) -> Optional[UserInDB]:
+    def authenticate_user(self, db: dict, username: str, password: str) -> Optional[User]:
         user = self.get_user(db, username)
         if user is None:
             return None
@@ -34,7 +34,7 @@ class JWTAuthenticationService:
             return None
         return user
 
-    def get_user_from_token(self, encoded_jwt: str) -> UserInDB:
+    def get_user_from_token(self, encoded_jwt: str) -> User:
         try:
             payload = self.get_access_token_payload(encoded_jwt)
             username: str = payload.get("sub")
