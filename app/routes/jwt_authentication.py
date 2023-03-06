@@ -7,8 +7,6 @@ from app.models import UserInput, User, Token, Message, EAuthenticationStatus
 from app.services import JWTAuthenticationService
 from app.error_handlers import raise_400, raise_401, raise_500
 
-from app.temp_db import temp_users_db
-
 
 router = APIRouter()
 
@@ -39,16 +37,16 @@ async def get_current_active_user(current_user: UserInput = Depends(get_current_
 @router.post("/token", response_model=Token, include_in_schema=False)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
     jwt_auth_service = JWTAuthenticationService()
-    credentials_exception = errors.InvalidCredentialsError("Incorrect username or password.")
 
-    user = jwt_auth_service.authenticate_user(temp_users_db, form_data.username, form_data.password)
-    if user is None:
-        raise_401(credentials_exception)
+    try:
+        user = jwt_auth_service.authenticate_user(form_data.username, form_data.password)
+        access_token = jwt_auth_service.create_access_token(data={"sub": user.username})
+        token_dict = {"access_token": access_token, "token_type": "bearer"}
 
-    access_token = jwt_auth_service.create_access_token(data={"sub": user.username})
-    token_dict = {"access_token": access_token, "token_type": "bearer"}
+        return Token(**token_dict)
 
-    return Token(**token_dict)
+    except errors.InvalidCredentialsError as e:
+        raise_401(e)
 
 
 @router.get("/test", include_in_schema=False,

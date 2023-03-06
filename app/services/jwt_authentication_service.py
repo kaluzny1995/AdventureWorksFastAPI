@@ -5,14 +5,14 @@ import datetime as dt
 
 from app import errors
 from app.config import JWTAuthenticationConfig
+from app.providers import AWFAPIUserProvider
 from app.models.jwt_authentication import User, TokenData
-
-from app.temp_db import temp_users_db
 
 
 class JWTAuthenticationService:
     jwt_auth_config: JWTAuthenticationConfig = JWTAuthenticationConfig.from_json()
     pwd_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    awfapi_user_provider: AWFAPIUserProvider = AWFAPIUserProvider()
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -20,19 +20,15 @@ class JWTAuthenticationService:
     def get_password_hash(self, password: str) -> str:
         return self.pwd_context.hash(password)
 
-    def get_user(self, db: dict, username: str) -> Optional[User]:
-        if username in db:
-            user_dict = db[username]
-            return User(**user_dict)
-        return None
+    def authenticate_user(self, username: str, password: str) -> Optional[User]:
+        try:
+            user = self.awfapi_user_provider.get_awfapi_user(username)
+            if not self.verify_password(password, user.hashed_password):
+                raise errors.InvalidCredentialsError("Invalid password.")
 
-    def authenticate_user(self, db: dict, username: str, password: str) -> Optional[User]:
-        user = self.get_user(db, username)
-        if user is None:
-            return None
-        if not self.verify_password(password, user.hashed_password):
-            return None
-        return user
+            return user
+        except errors.NotFoundError:
+            raise errors.InvalidCredentialsError("Invalid username.")
 
     def get_user_from_token(self, encoded_jwt: str) -> User:
         try:
@@ -42,7 +38,7 @@ class JWTAuthenticationService:
                 raise errors.InvalidCredentialsError("Could not decode username from token.")
 
             token_data = TokenData(username=username)
-            user = self.get_user(temp_users_db, username=token_data.username)  # Implement users db provider
+            user = self.awfapi_user_provider.get_awfapi_user(token_data.username)
             if user is None:
                 raise errors.InvalidCredentialsError("Could not found the user in database.")
 
@@ -50,7 +46,7 @@ class JWTAuthenticationService:
 
         except ExpiredSignatureError:
             raise errors.JWTTokenSignatureExpiredError("JWT token signature expired.")
-        except JWTError:
+        except (JWTError, errors.NotFoundError):
             raise errors.InvalidCredentialsError("Could not validate credentials.")
 
     def create_access_token(self, data: dict) -> str:
