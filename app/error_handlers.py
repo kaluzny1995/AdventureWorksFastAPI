@@ -11,13 +11,23 @@ from app.models import EAuthenticationStatus
 
 def raise_400(e: Exception):
     """ Raises 400 when the request contains bad information:
+    * non-unique value of the certain field was provided
     * current user is inactive
     * entity insertion/update violated the certain db constraints
     """
     e_message = str(e)
     print(e_message)
 
-    if "inactive" in e_message:
+    if "already exists" in e_message:
+        unique_field, value = utils.get_unique_field_name_from_message(e_message)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail={
+                                "info": f"Field '{unique_field}' uniqueness",
+                                "detail": f"Field '{unique_field}' must have unique values. "
+                                          f"Provided value '{value}' already exists."
+                            })
+
+    elif "inactive" in e_message:
         username = utils.get_username_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
@@ -25,16 +35,17 @@ def raise_400(e: Exception):
                                 "detail": f"Current user '{username}' is inactive."
                             })
 
-    if "ForeignKeyViolation" in e_message:
+    elif "ForeignKeyViolation" in e_message:
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
-                                "info": f"Related entity id does not exist",
+                                "info": "Related entity id does not exist",
                                 "detail": f"Related entity {foreign_key_details['entity']} "
                                           f"has no entry of given id "
                                           f"{foreign_key_details['key_column']}=({foreign_key_details['key_value']})."
                             },
                             headers={"message": foreign_key_details['line']})
+
     else:
         raise e
 

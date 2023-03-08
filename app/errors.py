@@ -8,6 +8,16 @@ class JWTTokenSignatureExpiredError(Exception):
     pass
 
 
+class UsernameAlreadyExistsError(Exception):
+    """ Raised when provided username already exists in the database """
+    pass
+
+
+class EmailAlreadyExistsError(Exception):
+    """ Raised when provided email already exists in the database """
+    pass
+
+
 class NotFoundError(Exception):
     """ Raised when the requested document does not exist """
     pass

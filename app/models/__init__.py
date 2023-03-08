@@ -1,4 +1,5 @@
-from app.models.jwt_authentication import Token, TokenData, UserInput, User
+from app.models.jwt_authentication import Token, TokenData
+from app.models.awfapi_user import AWFAPIUserInput, AWFAPIUser
 from app.models.e_authentication_status import EAuthenticationStatus
 
 from app.models.message import Message

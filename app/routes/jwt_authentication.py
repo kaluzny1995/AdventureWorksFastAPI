@@ -1,37 +1,15 @@
 from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict
 
 from app import errors
-from app.models import UserInput, User, Token, Message, EAuthenticationStatus
+from app.models import AWFAPIUser, Token, Message, EAuthenticationStatus
 from app.services import JWTAuthenticationService
-from app.error_handlers import raise_400, raise_401, raise_500
+from app.oauth2_handlers import oauth2_scheme, get_current_user
+from app.error_handlers import raise_401, raise_500
 
 
 router = APIRouter()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    jwt_auth_service = JWTAuthenticationService()
-
-    try:
-        user = jwt_auth_service.get_user_from_token(token)
-        return user
-
-    except errors.JWTTokenSignatureExpiredError as e:
-        raise_401(e)
-    except errors.InvalidCredentialsError as e:
-        raise_401(e)
-    except Exception as e:
-        raise_500(e)
-
-
-async def get_current_active_user(current_user: UserInput = Depends(get_current_user)) -> UserInput:
-    if current_user.is_disabled:
-        raise_400(Exception(f"{current_user.username}, Current user is inactive."))
-    return current_user
 
 
 @router.post("/token", response_model=Token, include_in_schema=False)
@@ -50,7 +28,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @router.get("/test", include_in_schema=False,
-            responses={200: {"model": Dict[str, str]}, 401: {"model": Dict[str, str]}, 500: {"model": Message}})
+            responses={200: {"model": Dict[str, str]},
+                       401: {"model": Dict[str, str]}, 500: {"model": Message}})
 async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
     jwt_auth_service = JWTAuthenticationService()
 
@@ -66,7 +45,8 @@ async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
 
 
 @router.get("/jwt_auth_test", tags=["JWT Authentication Test"],
-            responses={200: {"model": Dict[str, str]}, 401: {"model": Message}, 500: {"model": Message}})
+            responses={200: {"model": Dict[str, str]},
+                       401: {"model": Message}, 500: {"model": Message}})
 async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
     jwt_auth_service = JWTAuthenticationService()
 
@@ -83,7 +63,7 @@ async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
 
 
 @router.get("/current_user", tags=["JWT Authentication Test"],
-            responses={200: {"model": UserInput}, 400: {"model": Message},
+            responses={200: {"model": AWFAPIUser},
                        401: {"model": Message}, 500: {"model": Message}})
-async def read_users_me(current_user: UserInput = Depends(get_current_active_user)) -> UserInput:
+async def current_user_test(current_user: AWFAPIUser = Depends(get_current_user)) -> AWFAPIUser:
     return current_user
