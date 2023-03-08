@@ -1,19 +1,24 @@
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Depends, status
 from typing import Optional, List
 
 from app import errors
-from app.models import PersonInput, Person, Message
+from app.models import AWFAPIUser, PersonInput, Person, Message
 from app.providers import PersonProvider
 from app.services import PersonService
 
+from app.oauth2_handlers import get_current_active_user
 from app.error_handlers import raise_404, raise_500
 
 
 router = APIRouter()
 
 
-@router.get("/all_persons", tags=["Persons"], responses={200: {"model": List[Person]}, 500: {"model": Message}})
-def get_persons(offset: int = 0, limit: int = 10) -> List[Person]:
+@router.get("/all_persons", tags=["Persons"],
+            responses={200: {"model": List[Person]},
+                       400: {"model": Message}, 401: {"model": Message},
+                       500: {"model": Message}})
+def get_persons(offset: int = 0, limit: int = 10,
+                _: AWFAPIUser = Depends(get_current_active_user)) -> List[Person]:
     try:
         person_provider = PersonProvider()
         persons = person_provider.get_persons(limit, offset)
@@ -23,8 +28,11 @@ def get_persons(offset: int = 0, limit: int = 10) -> List[Person]:
 
 
 @router.get("/get_person/{person_id}", tags=["Persons"],
-            responses={200: {"model": Person}, 404: {"model": Message}, 500: {"model": Message}})
-def get_person(person_id: int) -> Person:
+            responses={200: {"model": Person},
+                       400: {"model": Message}, 401: {"model": Message},
+                       404: {"model": Message}, 500: {"model": Message}})
+def get_person(person_id: int,
+               _: AWFAPIUser = Depends(get_current_active_user)) -> Person:
     try:
         person_provider = PersonProvider()
         person = person_provider.get_person(person_id)
@@ -36,9 +44,12 @@ def get_person(person_id: int) -> Person:
 
 
 @router.post("/create_person", tags=["Persons"],
-             responses={201: {"model": Person}, 500: {"model": Message}}, status_code=201)
+             responses={201: {"model": Person},
+                        400: {"model": Message}, 401: {"model": Message},
+                        500: {"model": Message}}, status_code=status.HTTP_201_CREATED)
 def create_person(
-        person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"])) -> Person:
+        person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"]),
+        _: AWFAPIUser = Depends(get_current_active_user)) -> Person:
     try:
         person_provider = PersonProvider()
         new_person_id = person_provider.insert_person(person_input)
@@ -49,10 +60,12 @@ def create_person(
 
 
 @router.put("/update_person/{person_id}", tags=["Persons"],
-            responses={200: {"model": Person}, 404: {"model": Message}, 500: {"model": Message}})
+            responses={200: {"model": Person},
+                       400: {"model": Message}, 401: {"model": Message},
+                       404: {"model": Message}, 500: {"model": Message}})
 def update_person(person_id: int,
-                  person_input: PersonInput = Body(None,
-                                                   examples=PersonInput.Config.schema_extra["examples"])) -> Person:
+                  person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"]),
+                  _: AWFAPIUser = Depends(get_current_active_user)) -> Person:
     try:
         person_provider = PersonProvider()
         updated_person_id = person_provider.update_person(person_id, person_input)
@@ -65,8 +78,11 @@ def update_person(person_id: int,
 
 
 @router.delete("/delete_person/{person_id}", tags=["Persons"],
-               responses={200: {"model": Message}, 404: {"model": Message}, 500: {"model": Message}})
-def delete_person(person_id: int) -> Message:
+               responses={200: {"model": Message},
+                          400: {"model": Message}, 401: {"model": Message},
+                          404: {"model": Message}, 500: {"model": Message}})
+def delete_person(person_id: int,
+                  _: AWFAPIUser = Depends(get_current_active_user)) -> Message:
     try:
         person_provider = PersonProvider()
         person_provider.delete_person(person_id)

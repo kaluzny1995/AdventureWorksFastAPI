@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Depends, status
 from typing import List
 
 from app import errors
-from app.models import PhoneNumberTypeInput, PhoneNumberType, Message
+from app.models import AWFAPIUser, PhoneNumberTypeInput, PhoneNumberType, Message
 from app.providers import PhoneNumberTypeProvider
 
+from app.oauth2_handlers import get_current_active_user
 from app.error_handlers import raise_404, raise_500
 
 
@@ -12,8 +13,11 @@ router = APIRouter()
 
 
 @router.get("/all_phone_number_types", tags=["Phone Number Types"],
-            responses={200: {"model": List[PhoneNumberType]}, 500: {"model": Message}})
-def get_phone_number_types(offset: int = 0, limit: int = 10) -> List[PhoneNumberType]:
+            responses={200: {"model": List[PhoneNumberType]},
+                       400: {"model": Message}, 401: {"model": Message},
+                       500: {"model": Message}})
+def get_phone_number_types(offset: int = 0, limit: int = 10,
+                           _: AWFAPIUser = Depends(get_current_active_user)) -> List[PhoneNumberType]:
     try:
         phone_number_type_provider = PhoneNumberTypeProvider()
         phone_number_types = phone_number_type_provider.get_phone_number_types(limit, offset)
@@ -23,8 +27,11 @@ def get_phone_number_types(offset: int = 0, limit: int = 10) -> List[PhoneNumber
 
 
 @router.get("/get_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
-            responses={200: {"model": PhoneNumberType}, 404: {"model": Message}, 500: {"model": Message}})
-def get_phone_number_type(phone_number_type_id: int) -> PhoneNumberType:
+            responses={200: {"model": PhoneNumberType},
+                       400: {"model": Message}, 401: {"model": Message},
+                       404: {"model": Message}, 500: {"model": Message}})
+def get_phone_number_type(phone_number_type_id: int,
+                          _: AWFAPIUser = Depends(get_current_active_user)) -> PhoneNumberType:
     try:
         phone_number_type_provider = PhoneNumberTypeProvider()
         phone_number_type = phone_number_type_provider.get_phone_number_type(phone_number_type_id)
@@ -36,8 +43,11 @@ def get_phone_number_type(phone_number_type_id: int) -> PhoneNumberType:
 
 
 @router.post("/create_phone_number_type", tags=["Phone Number Types"],
-             responses={201: {"model": PhoneNumberType}, 500: {"model": Message}}, status_code=201)
-def create_phone_number_type(phone_number_type_input: PhoneNumberTypeInput = Body(...)) -> PhoneNumberType:
+             responses={201: {"model": PhoneNumberType},
+                        400: {"model": Message}, 401: {"model": Message},
+                        500: {"model": Message}}, status_code=status.HTTP_201_CREATED)
+def create_phone_number_type(phone_number_type_input: PhoneNumberTypeInput = Body(...),
+                             _: AWFAPIUser = Depends(get_current_active_user)) -> PhoneNumberType:
     try:
         phone_number_type_provider = PhoneNumberTypeProvider()
         new_phone_number_type_id = phone_number_type_provider.insert_phone_number_type(phone_number_type_input)
@@ -48,9 +58,12 @@ def create_phone_number_type(phone_number_type_input: PhoneNumberTypeInput = Bod
 
 
 @router.put("/update_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
-            responses={200: {"model": PhoneNumberType}, 404: {"model": Message}, 500: {"model": Message}})
+            responses={200: {"model": PhoneNumberType},
+                       400: {"model": Message}, 401: {"model": Message},
+                       404: {"model": Message}, 500: {"model": Message}})
 def update_phone_number_type(phone_number_type_id: int,
-                             phone_number_type_input: PhoneNumberTypeInput = Body(...)) -> PhoneNumberType:
+                             phone_number_type_input: PhoneNumberTypeInput = Body(...),
+                             _: AWFAPIUser = Depends(get_current_active_user)) -> PhoneNumberType:
     try:
         phone_number_type_provider = PhoneNumberTypeProvider()
         updated_phone_number_type_id = phone_number_type_provider.update_phone_number_type(phone_number_type_id,
@@ -64,8 +77,11 @@ def update_phone_number_type(phone_number_type_id: int,
 
 
 @router.delete("/delete_phone_number_type/{phone_number_type_id}", tags=["Phone Number Types"],
-               responses={200: {"model": Message}, 404: {"model": Message}, 500: {"model": Message}})
-def delete_phone_number_type(phone_number_type_id: int) -> Message:
+               responses={200: {"model": Message},
+                          400: {"model": Message}, 401: {"model": Message},
+                          404: {"model": Message}, 500: {"model": Message}})
+def delete_phone_number_type(phone_number_type_id: int,
+                             _: AWFAPIUser = Depends(get_current_active_user)) -> Message:
     try:
         phone_number_type_provider = PhoneNumberTypeProvider()
         phone_number_type_provider.delete_phone_number_type(phone_number_type_id)

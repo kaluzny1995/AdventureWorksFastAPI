@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, status
 from typing import List
 
 from app import errors
@@ -45,7 +45,7 @@ def get_awfapi_user(awfapi_user_username: str,
 @router.post("/create_awfapi_user", tags=["AWFAPI Users"],
              responses={201: {"model": AWFAPIUser},
                         400: {"model": Message}, 401: {"model": Message},
-                        500: {"model": Message}})
+                        500: {"model": Message}}, status_code=status.HTTP_201_CREATED)
 def create_awfapi_user(
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
         _: AWFAPIUser = Depends(get_current_active_user)) -> AWFAPIUser:
