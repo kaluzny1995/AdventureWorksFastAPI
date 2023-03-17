@@ -13,6 +13,7 @@ def raise_400(e: Exception):
     """ Raises 400 when the request contains bad information:
     * non-unique value of the certain field was provided
     * current user is inactive
+    * user typed wrong current password while changing credentials
     * entity insertion/update violated the certain db constraints
     """
     e_message = str(e)
@@ -33,6 +34,13 @@ def raise_400(e: Exception):
                             detail={
                                 "info": "Inactive user",
                                 "detail": f"Current user '{username}' is inactive."
+                            })
+
+    elif "current password" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail={
+                                "info": e_message,
+                                "detail": f"User provided {e_message.lower()}"
                             })
 
     elif "ForeignKeyViolation" in e_message:

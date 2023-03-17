@@ -8,6 +8,11 @@ class JWTTokenSignatureExpiredError(Exception):
     pass
 
 
+class InactiveUserError(Exception):
+    """ Raised when current user has restricted account access """
+    pass
+
+
 class UsernameAlreadyExistsError(Exception):
     """ Raised when provided username already exists in the database """
     pass

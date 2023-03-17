@@ -16,9 +16,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> AWFAPIUser:
         user = jwt_auth_service.get_user_from_token(token)
         return user
 
-    except errors.JWTTokenSignatureExpiredError as e:
-        raise_401(e)
-    except errors.InvalidCredentialsError as e:
+    except (errors.JWTTokenSignatureExpiredError, errors.InvalidCredentialsError) as e:
         raise_401(e)
     except Exception as e:
         raise_500(e)
@@ -26,5 +24,5 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> AWFAPIUser:
 
 async def get_current_active_user(current_user: AWFAPIUser = Depends(get_current_user)) -> AWFAPIUser:
     if current_user.is_disabled:
-        raise_400(Exception(f"{current_user.username}, Current user is inactive."))
+        raise_400(errors.InactiveUserError(f"{current_user.username}, Current user is inactive."))
     return current_user
