@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import List
 
 from app import errors
-from app.models import AWFAPIUser, PersonPhoneInput, PersonPhone, Message
+from app.models import AWFAPIUser, PersonPhoneInput, PersonPhone, Message, get_response_models
 from app.providers import PersonPhoneProvider
 
 from app.oauth2_handlers import get_current_active_user
@@ -13,9 +13,7 @@ router = APIRouter()
 
 
 @router.get("/all_person_phones", tags=["Person Phones"],
-            responses={200: {"model": List[PersonPhone]},
-                       400: {"model": Message}, 401: {"model": Message},
-                       500: {"model": Message}})
+            responses=get_response_models(List[PersonPhone], [200, 400, 401, 500]))
 def get_person_phones(offset: int = 0, limit: int = 10,
                       _: AWFAPIUser = Depends(get_current_active_user)) -> List[PersonPhone]:
     try:
@@ -27,9 +25,7 @@ def get_person_phones(offset: int = 0, limit: int = 10,
 
 
 @router.get("/get_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-            responses={200: {"model": PersonPhone},
-                       400: {"model": Message}, 401: {"model": Message},
-                       404: {"model": Message}, 500: {"model": Message}})
+            responses=get_response_models(PersonPhone, [200, 400, 401, 404, 500]))
 def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
                      _: AWFAPIUser = Depends(get_current_active_user)) -> PersonPhone:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
@@ -44,9 +40,7 @@ def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: in
 
 
 @router.post("/create_person_phone", tags=["Person Phones"],
-             responses={201: {"model": PersonPhone},
-                        400: {"model": Message}, 401: {"model": Message},
-                        500: {"model": Message}}, status_code=status.HTTP_201_CREATED)
+             responses=get_response_models(PersonPhone, [201, 400, 401, 500]), status_code=status.HTTP_201_CREATED)
 def create_person_phone(person_phone_input: PersonPhoneInput = Body(...),
                         _: AWFAPIUser = Depends(get_current_active_user)) -> PersonPhone:
     try:
@@ -61,9 +55,7 @@ def create_person_phone(person_phone_input: PersonPhoneInput = Body(...),
 
 
 @router.put("/update_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-            responses={200: {"model": PersonPhone},
-                       400: {"model": Message}, 401: {"model": Message},
-                       404: {"model": Message}, 500: {"model": Message}})
+            responses=get_response_models(PersonPhone, [200, 400, 401, 404, 500]))
 def update_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
                         person_phone_input: PersonPhoneInput = Body(...),
                         _: AWFAPIUser = Depends(get_current_active_user)) -> PersonPhone:
@@ -82,9 +74,7 @@ def update_person_phone(person_id: int, phone_number: str, phone_number_type_id:
 
 
 @router.delete("/delete_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-               responses={200: {"model": Message},
-                          400: {"model": Message}, 401: {"model": Message},
-                          404: {"model": Message}, 500: {"model": Message}})
+               responses=get_response_models(Message, [200, 400, 401, 404, 500]))
 def delete_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
                         _: AWFAPIUser = Depends(get_current_active_user)) -> Message:
     person_phone_id = (person_id, phone_number, phone_number_type_id)

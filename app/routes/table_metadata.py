@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import Optional, List
 
 from app import errors
-from app.models import AWFAPIUser, Message, TableMetadata
+from app.models import AWFAPIUser, Message, get_response_models, TableMetadata
 from app.providers import TableMetadataProvider
 
 from app.oauth2_handlers import get_current_active_user
@@ -13,9 +13,7 @@ router = APIRouter()
 
 
 @router.get("/table/names", tags=["Tables"],
-            responses={200: {"model": List[str]},
-                       400: {"model": Message}, 401: {"model": Message},
-                       500: {"model": Message}})
+            responses=get_response_models(List[str], [200, 400, 401, 500]))
 def get_table_names(_: AWFAPIUser = Depends(get_current_active_user)) -> List[str]:
     try:
         table_metadata_provider = TableMetadataProvider()
@@ -26,9 +24,7 @@ def get_table_names(_: AWFAPIUser = Depends(get_current_active_user)) -> List[st
 
 
 @router.get("/table/metadatas", tags=["Tables"],
-            responses={200: {"model": List[TableMetadata]},
-                       400: {"model": Message}, 401: {"model": Message},
-                       404: {"model": Message}, 500: {"model": Message}})
+            responses=get_response_models(List[TableMetadata], [200, 400, 401, 404, 500]))
 def get_table_metadatas(schema_name: Optional[str] = None, table_name: Optional[str] = None,
                         _: AWFAPIUser = Depends(get_current_active_user)):
     try:
