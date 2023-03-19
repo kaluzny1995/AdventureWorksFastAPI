@@ -23,6 +23,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> AWFAPIUser:
 
 
 async def get_current_active_user(current_user: AWFAPIUser = Depends(get_current_user)) -> AWFAPIUser:
-    if current_user.is_disabled:
+    if current_user.is_readonly:
         raise_400(errors.InactiveUserError(f"{current_user.username}, Current user is inactive."))
     return current_user

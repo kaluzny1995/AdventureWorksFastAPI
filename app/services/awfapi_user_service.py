@@ -51,7 +51,7 @@ class AWFAPIUserService:
         hashed_password = awfapi_user.hashed_password if awfapi_changed_user_credentials.new_password is None else \
             self.hash_password(awfapi_changed_user_credentials.new_password)
 
-        awfapi_user_input_dict = awfapi_user.dict(include={"full_name", "email", "is_disabled"})
+        awfapi_user_input_dict = awfapi_user.dict(include={"full_name", "email", "is_readonly"})
         awfapi_user_input_dict.update({"username": username, "hashed_password": hashed_password})
         awfapi_user_input = AWFAPIUserInput(**awfapi_user_input_dict)
 

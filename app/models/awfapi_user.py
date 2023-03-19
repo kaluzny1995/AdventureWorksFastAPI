@@ -7,7 +7,7 @@ class AWFAPIUserInput(BaseModel):
     username: str
     full_name: str
     email: str
-    is_disabled: bool
+    is_readonly: bool
     hashed_password: str
 
     class Config:
@@ -20,7 +20,7 @@ class AWFAPIUserInput(BaseModel):
                         "username": "dzhawaria",
                         "full_name": "Dzhejkob Awaria",
                         "email": "dzh.awaria@gmail.com",
-                        "is_disabled": False,
+                        "is_readonly": False,
                         "hashed_password": "$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"
                     }
                 },
@@ -31,7 +31,7 @@ class AWFAPIUserInput(BaseModel):
                         "username": "testuser",
                         "full_name": "Test AWFAPIUserInput",
                         "email": "test.user@test.user",
-                        "is_disabled": True,
+                        "is_readonly": True,
                         "hashed_password": "$2b$12$dQfVWYA0ko8tjyqglzHd4.2i9lY4x48Q08YsVSMWEIpPqXXTGRkwS"
                     }
                 }
@@ -49,7 +49,7 @@ class AWFAPIUser(AWFAPIUserInput):
                 "username": "dzhawaria",
                 "full_name": "Dzhejkob Awaria",
                 "email": "dzh.awaria@gmail.com",
-                "is_disabled": False,
+                "is_readonly": False,
                 "hashed_password": "$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6",
                 "date_created": dt.datetime(2022, 12, 9, 12, 37, 22),
                 "date_modified": dt.datetime(2023, 1, 27, 9, 19, 1)
@@ -79,7 +79,7 @@ class AWFAPIViewedUser(BaseModel):
     username: str
     full_name: str
     email: str
-    is_disabled: bool
+    is_readonly: bool
     date_created: dt.datetime
     date_modified: dt.datetime
 
@@ -89,7 +89,7 @@ class AWFAPIViewedUser(BaseModel):
                 "username": "dzhawaria",
                 "full_name": "Dzhejkob Awaria",
                 "email": "dzh.awaria@gmail.com",
-                "is_disabled": False,
+                "is_readonly": False,
                 "date_created": dt.datetime(2022, 12, 9, 12, 37, 22),
                 "date_modified": dt.datetime(2023, 1, 27, 9, 19, 1)
             }
@@ -99,7 +99,7 @@ class AWFAPIViewedUser(BaseModel):
 class AWFAPIChangedUserData(BaseModel):
     full_name: str
     email: str
-    is_disabled: bool
+    is_readonly: bool
 
     class Config:
         schema_extra = {
@@ -110,7 +110,7 @@ class AWFAPIChangedUserData(BaseModel):
                     "value": {
                         "full_name": "Dzh Awaria",
                         "email": "dzhejkob.awaria@gmail.com",
-                        "is_disabled": False
+                        "is_readonly": False
                     }
                 },
                 "second": {
@@ -119,7 +119,7 @@ class AWFAPIChangedUserData(BaseModel):
                     "value": {
                         "full_name": "Test AWFAPIUserInput2",
                         "email": "test2.user2@test.user",
-                        "is_disabled": True
+                        "is_readonly": True
                     }
                 }
             }
@@ -172,7 +172,7 @@ class AWFAPIRegisteredUser(BaseModel):
     repeated_password: str
     full_name: str
     email: str
-    is_disabled: bool
+    is_readonly: bool
 
     class Config:
         schema_extra = {
@@ -186,7 +186,7 @@ class AWFAPIRegisteredUser(BaseModel):
                         "repeated_password": "awaria95",
                         "full_name": "Dzhejkob Awaria",
                         "email": "dzh.awaria@gmail.com",
-                        "is_disabled": False
+                        "is_readonly": False
                     }
                 },
                 "second": {
@@ -198,7 +198,7 @@ class AWFAPIRegisteredUser(BaseModel):
                         "repeated_password": "testpassword",
                         "full_name": "Test AWFAPIUserInput",
                         "email": "test.user@test.user",
-                        "is_disabled": True
+                        "is_readonly": True
                     }
                 }
             }
