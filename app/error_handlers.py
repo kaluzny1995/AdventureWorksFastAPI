@@ -12,7 +12,7 @@ from app.models import EAuthenticationStatus
 def raise_400(e: Exception):
     """ Raises 400 when the request contains bad information:
     * non-unique value of the certain field was provided
-    * current user is inactive
+    * current user has readonly restricted access
     * user typed wrong current password while changing credentials
     * entity insertion/update violated the certain db constraints
     """
@@ -28,12 +28,12 @@ def raise_400(e: Exception):
                                           f"Provided value '{value}' already exists."
                             })
 
-    elif "inactive" in e_message:
+    elif "readonly" in e_message:
         username = utils.get_username_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
-                                "info": "Inactive user",
-                                "detail": f"Current user '{username}' is inactive."
+                                "info": f"Readonly access for '{username}'",
+                                "detail": e_message
                             })
 
     elif "current password" in e_message:

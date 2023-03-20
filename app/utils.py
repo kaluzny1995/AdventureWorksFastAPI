@@ -3,7 +3,8 @@ from typing import Dict, Tuple
 
 
 def get_username_from_message(error_message: str) -> str:
-    return error_message.split(",")[0]
+    # Example error message: "Current user 'testuser' has readonly restricted access."
+    return re.findall("'([^']*)'", error_message)[0]
 
 
 def get_unique_field_name_from_message(error_message: str) -> Tuple[str, str]:

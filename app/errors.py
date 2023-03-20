@@ -8,8 +8,8 @@ class JWTTokenSignatureExpiredError(Exception):
     pass
 
 
-class InactiveUserError(Exception):
-    """ Raised when current user has restricted account access """
+class ReadonlyUserError(Exception):
+    """ Raised when current user has readonly restricted account access """
     pass
 
 

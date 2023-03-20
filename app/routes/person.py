@@ -6,7 +6,7 @@ from app.models import AWFAPIUser, PersonInput, Person, Message, get_response_mo
 from app.providers import PersonProvider
 from app.services import PersonService
 
-from app.oauth2_handlers import get_current_active_user
+from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_404, raise_500
 
 
@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/all_persons", tags=["Persons"],
             responses=get_response_models(List[Person], [200, 400, 401, 500]))
 def get_persons(offset: int = 0, limit: int = 10,
-                _: AWFAPIUser = Depends(get_current_active_user)) -> List[Person]:
+                _: AWFAPIUser = Depends(get_current_user)) -> List[Person]:
     try:
         person_provider = PersonProvider()
         persons = person_provider.get_persons(limit, offset)
@@ -28,7 +28,7 @@ def get_persons(offset: int = 0, limit: int = 10,
 @router.get("/get_person/{person_id}", tags=["Persons"],
             responses=get_response_models(Person, [200, 400, 401, 404, 500]))
 def get_person(person_id: int,
-               _: AWFAPIUser = Depends(get_current_active_user)) -> Person:
+               _: AWFAPIUser = Depends(get_current_user)) -> Person:
     try:
         person_provider = PersonProvider()
         person = person_provider.get_person(person_id)
@@ -43,7 +43,7 @@ def get_person(person_id: int,
              responses=get_response_models(Person, [201, 400, 401, 500]), status_code=status.HTTP_201_CREATED)
 def create_person(
         person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"]),
-        _: AWFAPIUser = Depends(get_current_active_user)) -> Person:
+        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Person:
     try:
         person_provider = PersonProvider()
         new_person_id = person_provider.insert_person(person_input)
@@ -57,7 +57,7 @@ def create_person(
             responses=get_response_models(Person, [200, 400, 401, 404, 500]))
 def update_person(person_id: int,
                   person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"]),
-                  _: AWFAPIUser = Depends(get_current_active_user)) -> Person:
+                  _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Person:
     try:
         person_provider = PersonProvider()
         updated_person_id = person_provider.update_person(person_id, person_input)
@@ -72,7 +72,7 @@ def update_person(person_id: int,
 @router.delete("/delete_person/{person_id}", tags=["Persons"],
                responses=get_response_models(Message, [200, 400, 401, 404, 500]))
 def delete_person(person_id: int,
-                  _: AWFAPIUser = Depends(get_current_active_user)) -> Message:
+                  _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
     try:
         person_provider = PersonProvider()
         person_provider.delete_person(person_id)

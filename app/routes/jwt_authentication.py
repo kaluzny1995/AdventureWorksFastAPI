@@ -5,7 +5,7 @@ from typing import Dict
 from app import errors
 from app.models import AWFAPIUser, Token, get_response_models, EAuthenticationStatus
 from app.services import JWTAuthenticationService
-from app.oauth2_handlers import oauth2_scheme, get_current_user, get_current_active_user
+from app.oauth2_handlers import oauth2_scheme, get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_401, raise_500
 
 
@@ -63,7 +63,8 @@ async def current_user_test(current_user: AWFAPIUser = Depends(get_current_user)
     return current_user
 
 
-@router.get("/current_active_user", tags=["JWT Authentication Test"],
+@router.get("/current_nonreadonly_user", tags=["JWT Authentication Test"],
             responses=get_response_models(AWFAPIUser, [200, 400, 401, 500]))
-async def current_active_user_test(current_active_user: AWFAPIUser = Depends(get_current_active_user)) -> AWFAPIUser:
-    return current_active_user
+async def current_nonreadonly_user_test(
+        current_nonreadonly_user: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> AWFAPIUser:
+    return current_nonreadonly_user

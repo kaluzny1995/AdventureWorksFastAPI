@@ -8,7 +8,7 @@ from app.models import AWFAPIUserInput, AWFAPIUser,\
 from app.providers import AWFAPIUserProvider
 from app.services import AWFAPIUserService
 
-from app.oauth2_handlers import get_current_user, get_current_active_user
+from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_500
 
 
@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/all_awfapi_users", tags=["AWFAPI Users"],
             responses=get_response_models(List[AWFAPIUser], [200, 400, 401, 500]), include_in_schema=False)
 def get_awfapi_users(offset: int = 0, limit: int = 10,
-                     _: AWFAPIUser = Depends(get_current_active_user)) -> List[AWFAPIUser]:
+                     _: AWFAPIUser = Depends(get_current_user)) -> List[AWFAPIUser]:
     try:
         awfapi_user_provider = AWFAPIUserProvider()
         awfapi_users = awfapi_user_provider.get_awfapi_users(limit, offset)
@@ -30,7 +30,7 @@ def get_awfapi_users(offset: int = 0, limit: int = 10,
 @router.get("/get_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
             responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=False)
 def get_awfapi_user(awfapi_user_username: str,
-                    _: AWFAPIUser = Depends(get_current_active_user)) -> AWFAPIUser:
+                    _: AWFAPIUser = Depends(get_current_user)) -> AWFAPIUser:
     try:
         awfapi_user_provider = AWFAPIUserProvider()
         awfapi_user = awfapi_user_provider.get_awfapi_user(awfapi_user_username)
@@ -46,7 +46,7 @@ def get_awfapi_user(awfapi_user_username: str,
              status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def create_awfapi_user(
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
-        _: AWFAPIUser = Depends(get_current_active_user)) -> AWFAPIUser:
+        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> AWFAPIUser:
     try:
         awfapi_user_provider = AWFAPIUserProvider()
         new_awfapi_user_username = awfapi_user_provider.insert_awfapi_user(awfapi_user_input)
@@ -63,7 +63,7 @@ def create_awfapi_user(
 def update_awfapi_user(
         awfapi_user_username: str,
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
-        _: AWFAPIUser = Depends(get_current_active_user)) -> AWFAPIUser:
+        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> AWFAPIUser:
     try:
         awfapi_user_provider = AWFAPIUserProvider()
         updated_awfapi_user_username = awfapi_user_provider.update_awfapi_user(awfapi_user_username, awfapi_user_input)
@@ -79,7 +79,7 @@ def update_awfapi_user(
 
 @router.delete("/delete_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
                responses=get_response_models(Message, [200, 400, 401, 404, 500]), include_in_schema=False)
-def delete_awfapi_user(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_active_user)) -> Message:
+def delete_awfapi_user(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
     try:
         awfapi_user_provider = AWFAPIUserProvider()
         awfapi_user_provider.delete_awfapi_user(awfapi_user_username)
