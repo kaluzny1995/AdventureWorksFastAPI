@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import Dict
+from typing import Dict, Union
 
 from app import errors
 from app.models import AWFAPIUser, Token, get_response_models, EAuthenticationStatus
@@ -25,6 +25,24 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
     except errors.InvalidCredentialsError as e:
         raise_401(e)
+
+
+@router.get("/verify/{password}", include_in_schema=False,
+            responses=get_response_models(Dict[str, Union[str, bool]], [200, 401, 500]))
+async def verify(password: str, token: str = Depends(oauth2_scheme)) -> Dict[str, Union[str, bool]]:
+    jwt_auth_service = JWTAuthenticationService()
+
+    try:
+        user = jwt_auth_service.get_user_from_token(token)
+        jwt_auth_service.authenticate_user(user.username, password)
+        return dict(verified=True)
+    except errors.InvalidCredentialsError as e:
+        if "password" in str(e):
+            return dict(verified=False)
+        else:
+            raise_401(e)
+    except Exception as e:
+        raise_500(e)
 
 
 @router.get("/test", include_in_schema=False,
