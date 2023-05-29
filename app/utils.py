@@ -1,5 +1,16 @@
 import re
-from typing import Dict
+from typing import Dict, Tuple
+
+
+def get_username_from_message(error_message: str) -> str:
+    # Example error message: "Current user 'testuser' has readonly restricted access."
+    return re.findall("'([^']*)'", error_message)[0]
+
+
+def get_unique_field_name_from_message(error_message: str) -> Tuple[str, str]:
+    field, value = error_message.replace("Provided ", "").replace(" already exists.", "").split(" ")
+    # Example error message: "Provided username 'testuser' already exists."
+    return field, value[1:-1]
 
 
 def get_foreign_key_violence_details(error_message: str) -> Dict[str, str]:

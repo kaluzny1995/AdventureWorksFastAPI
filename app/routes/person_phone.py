@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Body
-from typing import List, Tuple
+from fastapi import APIRouter, Body, Depends, status
+from typing import List
 
 from app import errors
-from app.models import PersonPhoneInput, PersonPhone, Message
+from app.models import AWFAPIUser, PersonPhoneInput, PersonPhone, Message, get_response_models
 from app.providers import PersonPhoneProvider
 
+from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_500
 
 
@@ -12,8 +13,9 @@ router = APIRouter()
 
 
 @router.get("/all_person_phones", tags=["Person Phones"],
-            responses={200: {"model": List[PersonPhone]}, 500: {"model": Message}})
-def get_person_phones(offset: int = 0, limit: int = 10) -> List[PersonPhone]:
+            responses=get_response_models(List[PersonPhone], [200, 400, 401, 500]))
+def get_person_phones(offset: int = 0, limit: int = 10,
+                      _: AWFAPIUser = Depends(get_current_user)) -> List[PersonPhone]:
     try:
         person_phone_provider = PersonPhoneProvider()
         person_phones = person_phone_provider.get_person_phones(limit, offset)
@@ -23,8 +25,9 @@ def get_person_phones(offset: int = 0, limit: int = 10) -> List[PersonPhone]:
 
 
 @router.get("/get_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-            responses={200: {"model": PersonPhone}, 404: {"model": Message}, 500: {"model": Message}})
-def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: int) -> PersonPhone:
+            responses=get_response_models(PersonPhone, [200, 400, 401, 404, 500]))
+def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
+                     _: AWFAPIUser = Depends(get_current_user)) -> PersonPhone:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
         person_phone_provider = PersonPhoneProvider()
@@ -37,9 +40,9 @@ def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: in
 
 
 @router.post("/create_person_phone", tags=["Person Phones"],
-             responses={201: {"model": PersonPhone}, 400: {"model": Message},
-                        500: {"model": Message}}, status_code=201)
-def create_person_phone(person_phone_input: PersonPhoneInput = Body(...)) -> PersonPhone:
+             responses=get_response_models(PersonPhone, [201, 400, 401, 500]), status_code=status.HTTP_201_CREATED)
+def create_person_phone(person_phone_input: PersonPhoneInput = Body(...),
+                        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> PersonPhone:
     try:
         person_phone_provider = PersonPhoneProvider()
         new_person_phone_id = person_phone_provider.insert_person_phone(person_phone_input)
@@ -52,10 +55,10 @@ def create_person_phone(person_phone_input: PersonPhoneInput = Body(...)) -> Per
 
 
 @router.put("/update_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-            responses={200: {"model": PersonPhone}, 400: {"model": Message},
-                       404: {"model": Message}, 500: {"model": Message}})
+            responses=get_response_models(PersonPhone, [200, 400, 401, 404, 500]))
 def update_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
-                        person_phone_input: PersonPhoneInput = Body(...)) -> PersonPhone:
+                        person_phone_input: PersonPhoneInput = Body(...),
+                        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> PersonPhone:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
         person_phone_provider = PersonPhoneProvider()
@@ -71,8 +74,9 @@ def update_person_phone(person_id: int, phone_number: str, phone_number_type_id:
 
 
 @router.delete("/delete_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-               responses={200: {"model": Message}, 404: {"model": Message}, 500: {"model": Message}})
-def delete_person_phone(person_id: int, phone_number: str, phone_number_type_id: int) -> Message:
+               responses=get_response_models(Message, [200, 400, 401, 404, 500]))
+def delete_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
+                        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
         person_phone_provider = PersonPhoneProvider()
