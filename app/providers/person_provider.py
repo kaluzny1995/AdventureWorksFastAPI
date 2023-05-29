@@ -1,4 +1,5 @@
 import datetime as dt
+import sqlalchemy
 from sqlmodel import create_engine, Session, select
 from typing import Optional, List
 
@@ -9,9 +10,16 @@ from app.models import Person, PersonInput
 
 
 class PersonProvider:
-    connection_string: str = PostgresdbConnectionConfig.get_db_connection_string()
-    business_entity_provider: BusinessEntityProvider = BusinessEntityProvider()
-    db_engine = create_engine(connection_string)
+    connection_string: str
+    business_entity_provider: BusinessEntityProvider
+    db_engine: sqlalchemy.engine.Engine
+
+    def __init__(self, connection_string: Optional[str] = None,
+                 business_entity_provider: Optional[BusinessEntityProvider] = None,
+                 db_engine: Optional[sqlalchemy.engine.Engine] = None):
+        self.connection_string = connection_string or PostgresdbConnectionConfig.get_db_connection_string()
+        self.business_entity_provider = business_entity_provider or BusinessEntityProvider()
+        self.db_engine = db_engine or create_engine(self.connection_string)
 
     def get_persons(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
         with Session(self.db_engine) as db_session:

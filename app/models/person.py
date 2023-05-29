@@ -9,7 +9,7 @@ from app.models import EPersonType
 
 class PersonInput(BaseModel):
     person_type: EPersonType
-    name_style: str = 0
+    name_style: str = "0"
     title: Optional[str]
     first_name: str
     middle_name: Optional[str]
@@ -54,7 +54,7 @@ class PersonInput(BaseModel):
 class Person(SQLModel, table=True):
     business_entity_id: int = Field(sa_column=Column("BusinessEntityID", Integer, primary_key=True, nullable=False))
     person_type: EPersonType = Field(sa_column=Column("PersonType", String, nullable=False))
-    name_style: str = Field(sa_column=Column("NameStyle", String, default=0, nullable=False))
+    name_style: str = Field(sa_column=Column("NameStyle", String, default="0", nullable=False))
     title: Optional[str] = Field(sa_column=Column("Title", String, nullable=True))
     first_name: str = Field(sa_column=Column("FirstName", String, nullable=False))
     middle_name: Optional[str] = Field(sa_column=Column("MiddleName", String, nullable=True))
