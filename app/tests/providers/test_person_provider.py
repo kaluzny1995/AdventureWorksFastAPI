@@ -42,6 +42,7 @@ def test_get_persons_should_return_valid_objects(persons: List[PersonInput]) -> 
     expected_persons = person_provider.get_persons()
 
     # Assert
+    assert len(persons) == len(expected_persons)
     for p, ep in zip(persons, expected_persons):
         assert ep.business_entity_id is not None
         assert p.person_type == ep.person_type

@@ -16,7 +16,7 @@ class BusinessEntityProvider:
         self.connection_string = connection_string or PostgresdbConnectionConfig.get_db_connection_string()
         self.db_engine = db_engine or create_engine(self.connection_string)
 
-    def get_business_entities(self, limit: Optional[int], offset: Optional[int]) -> List[BusinessEntity]:
+    def get_business_entities(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[BusinessEntity]:
         with Session(self.db_engine) as db_session:
             statement = select(BusinessEntity)
             if offset is not None:
