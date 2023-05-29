@@ -1,13 +1,14 @@
-from typing import Optional
+from typing import Optional, List
 
 from app import errors
 from app.providers import PersonProvider
+from app.models import Person
 
 
 class PersonService:
     person_provider: PersonProvider = PersonProvider()
 
-    def get_persons_by_phrases(self, first_name_phrase: Optional[str], last_name_phrase: Optional[str]):
+    def get_persons_by_phrases(self, first_name_phrase: Optional[str], last_name_phrase: Optional[str]) -> List[Person]:
         if first_name_phrase is None and last_name_phrase is None:
             raise errors.EmptyFieldsError()
 
