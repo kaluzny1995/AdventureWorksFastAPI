@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.get("/all_awfapi_users", tags=["AWFAPI Users"],
-            responses=get_response_models(List[AWFAPIUser], [200, 400, 401, 500]), include_in_schema=False)
+            responses=get_response_models(List[AWFAPIUser], [200, 400, 401, 500]), include_in_schema=True)
 def get_awfapi_users(offset: int = 0, limit: int = 10,
                      _: AWFAPIUser = Depends(get_current_user)) -> List[AWFAPIUser]:
     try:
@@ -28,7 +28,7 @@ def get_awfapi_users(offset: int = 0, limit: int = 10,
 
 
 @router.get("/get_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
-            responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=False)
+            responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=True)
 def get_awfapi_user(awfapi_user_username: str,
                     _: AWFAPIUser = Depends(get_current_user)) -> AWFAPIUser:
     try:
@@ -43,7 +43,7 @@ def get_awfapi_user(awfapi_user_username: str,
 
 @router.post("/create_awfapi_user", tags=["AWFAPI Users"],
              responses=get_response_models(AWFAPIUser, [201, 400, 401, 500]),
-             status_code=status.HTTP_201_CREATED, include_in_schema=False)
+             status_code=status.HTTP_201_CREATED, include_in_schema=True)
 def create_awfapi_user(
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
         _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> AWFAPIUser:
@@ -59,7 +59,7 @@ def create_awfapi_user(
 
 
 @router.put("/update_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
-            responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=False)
+            responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=True)
 def update_awfapi_user(
         awfapi_user_username: str,
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
@@ -78,7 +78,7 @@ def update_awfapi_user(
 
 
 @router.delete("/delete_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
-               responses=get_response_models(Message, [200, 400, 401, 404, 500]), include_in_schema=False)
+               responses=get_response_models(Message, [200, 400, 401, 404, 500]), include_in_schema=True)
 def delete_awfapi_user(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
     try:
         awfapi_user_provider = AWFAPIUserProvider()

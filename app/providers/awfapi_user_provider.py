@@ -8,11 +8,18 @@ from app.models import AWFAPIUserInput, AWFAPIUser
 
 
 class AWFAPIUserProvider:
-    connection_string: str = MongodbConnectionConfig.get_db_connection_string()
-    db_engine = pymongo.MongoClient(connection_string)
+    connection_string: str
+    collection_name: str
+    db_engine: pymongo.MongoClient
+
+    def __init__(self, connection_string: Optional[str] = None, collection_name: Optional[str] = None,
+                 db_engine: Optional[pymongo.MongoClient] = None):
+        self.connection_string = connection_string or MongodbConnectionConfig.get_db_connection_string()
+        self.collection_name = collection_name or MongodbConnectionConfig.get_collection_name()
+        self.db_engine = db_engine or pymongo.MongoClient(self.connection_string)
 
     def get_awfapi_users(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[AWFAPIUser]:
-        awfapi_user_definitions = self.db_engine.awfapi.users.find()
+        awfapi_user_definitions = self.db_engine.awfapi[self.collection_name].find()
         if offset is not None:
             awfapi_user_definitions = awfapi_user_definitions.skip(offset)
         if limit is not None:
@@ -20,7 +27,7 @@ class AWFAPIUserProvider:
         return list(map(lambda au: AWFAPIUser(**au), awfapi_user_definitions))
 
     def get_awfapi_user(self, username: str) -> AWFAPIUser:
-        awfapi_user_definition = self.db_engine.awfapi.users.find_one({'username': {"$eq": username}})
+        awfapi_user_definition = self.db_engine.awfapi[self.collection_name].find_one({'username': {"$eq": username}})
         if awfapi_user_definition is None:
             raise errors.NotFoundError(f"AWFAPI user of username '{username}' does not exist")
         return AWFAPIUser(**awfapi_user_definition)
@@ -31,7 +38,7 @@ class AWFAPIUserProvider:
 
         awfapi_user = AWFAPIUser(date_created=dt.datetime.utcnow(), date_modified=dt.datetime.utcnow(),
                                  **awfapi_user_input.dict())
-        self.db_engine.awfapi.users.insert_one(awfapi_user.dict())
+        self.db_engine.awfapi[self.collection_name].insert_one(awfapi_user.dict())
         return awfapi_user.username
 
     def update_awfapi_user(self, username: str, awfapi_user_input: AWFAPIUserInput) -> str:
@@ -41,13 +48,13 @@ class AWFAPIUserProvider:
 
         updated_awfapi_user.update_from_input(awfapi_user_input)
         updated_awfapi_user.date_modified = dt.datetime.utcnow()
-        self.db_engine.awfapi.users.update_one({'username': {"$eq": username}},
-                                               {"$set": updated_awfapi_user.dict()})
+        self.db_engine.awfapi[self.collection_name].update_one({'username': {"$eq": username}},
+                                                               {"$set": updated_awfapi_user.dict()})
         return updated_awfapi_user.username
 
     def delete_awfapi_user(self, username: str) -> None:
         self.get_awfapi_user(username)
-        self.db_engine.awfapi.users.delete_one({'username': {"$eq": username}})
+        self.db_engine.awfapi[self.collection_name].delete_one({'username': {"$eq": username}})
 
     def guard_unique_username(self, new_username: str, current_username: Optional[str] = None) -> None:
         awfapi_users = self.get_awfapi_users()
