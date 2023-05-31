@@ -2,6 +2,7 @@ from app.providers.awfapi_user_provider import AWFAPIUserProvider
 from app.providers.table_metadata_provider import TableMetadataProvider
 
 from app.providers.business_entity_provider import BusinessEntityProvider
+from app.providers.i_person_provider import IPersonProvider
 from app.providers.person_provider import PersonProvider
 
 from app.providers.phone_number_type_provider import PhoneNumberTypeProvider
