@@ -5,9 +5,10 @@ from typing import Optional, List
 from app import errors
 from app.config import PostgresdbConnectionConfig
 from app.models import BusinessEntity
+from app.providers import IBusinessEntityProvider
 
 
-class BusinessEntityProvider:
+class BusinessEntityProvider(IBusinessEntityProvider):
     connection_string: str
     db_engine: sqlalchemy.engine.Engine
 

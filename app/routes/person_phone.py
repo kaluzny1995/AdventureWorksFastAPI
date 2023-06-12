@@ -11,13 +11,14 @@ from app.error_handlers import raise_400, raise_404, raise_500
 
 router = APIRouter()
 
+person_phone_provider = PersonPhoneProvider()
+
 
 @router.get("/all_person_phones", tags=["Person Phones"],
             responses=get_response_models(List[PersonPhone], [200, 400, 401, 500]))
 def get_person_phones(offset: int = 0, limit: int = 10,
                       _: AWFAPIUser = Depends(get_current_user)) -> List[PersonPhone]:
     try:
-        person_phone_provider = PersonPhoneProvider()
         person_phones = person_phone_provider.get_person_phones(limit, offset)
         return person_phones
     except Exception as e:
@@ -30,7 +31,6 @@ def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: in
                      _: AWFAPIUser = Depends(get_current_user)) -> PersonPhone:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
-        person_phone_provider = PersonPhoneProvider()
         person_phone = person_phone_provider.get_person_phone(person_phone_id)
         return person_phone
     except errors.NotFoundError as e:
@@ -44,7 +44,6 @@ def get_person_phone(person_id: int, phone_number: str, phone_number_type_id: in
 def create_person_phone(person_phone_input: PersonPhoneInput = Body(...),
                         _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> PersonPhone:
     try:
-        person_phone_provider = PersonPhoneProvider()
         new_person_phone_id = person_phone_provider.insert_person_phone(person_phone_input)
         new_person_phone = person_phone_provider.get_person_phone(new_person_phone_id)
         return new_person_phone
@@ -61,7 +60,6 @@ def update_person_phone(person_id: int, phone_number: str, phone_number_type_id:
                         _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> PersonPhone:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
-        person_phone_provider = PersonPhoneProvider()
         updated_person_phone_id = person_phone_provider.update_person_phone(person_phone_id, person_phone_input)
         updated_person_phone = person_phone_provider.get_person_phone(updated_person_phone_id)
         return updated_person_phone
@@ -79,7 +77,6 @@ def delete_person_phone(person_id: int, phone_number: str, phone_number_type_id:
                         _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
-        person_phone_provider = PersonPhoneProvider()
         person_phone_provider.delete_person_phone(person_phone_id)
         return Message(info="Person phone deleted",
                        message=f"Person phone of given id {person_phone_id} deleted.")

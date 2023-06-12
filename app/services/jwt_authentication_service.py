@@ -4,19 +4,19 @@ import datetime as dt
 
 from app import errors
 from app.config import JWTAuthenticationConfig
-from app.providers import AWFAPIUserProvider
+from app.providers import IAWFAPIUserProvider, AWFAPIUserProvider
 from app.services import AWFAPIUserService
 from app.models import AWFAPIUser, TokenData
 
 
 class JWTAuthenticationService:
     jwt_auth_config: JWTAuthenticationConfig
-    awfapi_user_provider: AWFAPIUserProvider
+    awfapi_user_provider: IAWFAPIUserProvider
     awfapi_user_service: AWFAPIUserService
 
     def __init__(self,
                  jwt_auth_config: Optional[JWTAuthenticationConfig] = None,
-                 awfapi_user_provider: Optional[AWFAPIUserProvider] = None,
+                 awfapi_user_provider: Optional[IAWFAPIUserProvider] = None,
                  awfapi_user_service: Optional[AWFAPIUserService] = None):
         self.jwt_auth_config = jwt_auth_config or JWTAuthenticationConfig.from_json()
         self.awfapi_user_provider = awfapi_user_provider or AWFAPIUserProvider()

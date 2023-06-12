@@ -1,17 +1,23 @@
 import datetime as dt
-from sqlmodel import create_engine, Session, select
-from sqlalchemy import and_
 import sqlalchemy.exc
+from sqlalchemy import and_
 from typing import Optional, List, Tuple
+from sqlmodel import create_engine, Session, select
 
 from app import errors
 from app.config import PostgresdbConnectionConfig
 from app.models import PersonPhone, PersonPhoneInput
+from app.providers import IPersonPhoneProvider
 
 
-class PersonPhoneProvider:
-    connection_string: str = PostgresdbConnectionConfig.get_db_connection_string()
-    db_engine = create_engine(connection_string)
+class PersonPhoneProvider(IPersonPhoneProvider):
+    connection_string: str
+    db_engine: sqlalchemy.engine.Engine
+
+    def __init__(self, connection_string: Optional[str] = None,
+                 db_engine: Optional[sqlalchemy.engine.Engine] = None):
+        self.connection_string = connection_string or PostgresdbConnectionConfig.get_db_connection_string()
+        self.db_engine = db_engine or create_engine(connection_string)
 
     def get_person_phones(self, limit: Optional[int], offset: Optional[int]) -> List[PersonPhone]:
         with Session(self.db_engine) as db_session:

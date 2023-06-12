@@ -1,6 +1,7 @@
+import sqlalchemy
+from typing import Optional, List
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
-from typing import Optional, List
 
 from app import errors
 from app.config import PostgresdbConnectionConfig
@@ -8,9 +9,17 @@ from app.models import TableMetadata
 
 
 class TableMetadataProvider:
-    connection_string: str = PostgresdbConnectionConfig.get_db_connection_string()
-    excluded_schema_names: List[str] = ["'public'", "'topology'", "'pg_catalog'", "'information_schema'"]
-    db_engine = create_engine(connection_string)
+    connection_string: str
+    db_engine: sqlalchemy.engine.Engine
+    excluded_schema_names: List[str]
+
+    def __init__(self, connection_string: Optional[str] = None,
+                 db_engine: Optional[sqlalchemy.engine.Engine] = None,
+                 excluded_schema_names: Optional[List[str]] = None):
+        self.connection_string = connection_string or PostgresdbConnectionConfig.get_db_connection_string()
+        self.db_engine = db_engine or create_engine(self.connection_string)
+        self.excluded_schema_names = excluded_schema_names or ["'public'", "'topology'", "'pg_catalog'",
+                                                               "'information_schema'"]
 
     def get_table_names(self) -> List[str]:
         fields = ["table_schema", "table_name"]
