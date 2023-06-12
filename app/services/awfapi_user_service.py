@@ -1,14 +1,20 @@
+from typing import Optional
 from passlib.context import CryptContext
 
 from app.models import AWFAPIUserInput,\
     AWFAPIViewedUser, AWFAPIRegisteredUser, AWFAPIChangedUserData, AWFAPIChangedUserCredentials
-from app.providers import AWFAPIUserProvider
+from app.providers import IAWFAPIUserProvider, AWFAPIUserProvider
 from app import errors
 
 
 class AWFAPIUserService:
-    pwd_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    awfapi_user_provider: AWFAPIUserProvider = AWFAPIUserProvider()
+    pwd_context: CryptContext
+    awfapi_user_provider: IAWFAPIUserProvider
+
+    def __init__(self, pwd_context: Optional[CryptContext] = None,
+                 awfapi_user_provider: Optional[IAWFAPIUserProvider] = None):
+        self.pwd_context = pwd_context or CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.awfapi_user_provider = awfapi_user_provider or AWFAPIUserProvider()
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return self.pwd_context.verify(plain_password, hashed_password)

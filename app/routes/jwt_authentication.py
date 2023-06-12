@@ -11,11 +11,11 @@ from app.error_handlers import raise_401, raise_500
 
 router = APIRouter()
 
+jwt_auth_service = JWTAuthenticationService()
+
 
 @router.post("/token", response_model=Token, include_in_schema=False)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
-    jwt_auth_service = JWTAuthenticationService()
-
     try:
         user = jwt_auth_service.authenticate_user(form_data.username, form_data.password)
         access_token = jwt_auth_service.create_access_token(data={"sub": user.username})
@@ -30,8 +30,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @router.get("/verify/{password}", include_in_schema=False,
             responses=get_response_models(Dict[str, Union[str, bool]], [200, 401, 500]))
 async def verify(password: str, token: str = Depends(oauth2_scheme)) -> Dict[str, Union[str, bool]]:
-    jwt_auth_service = JWTAuthenticationService()
-
     try:
         user = jwt_auth_service.get_user_from_token(token)
         jwt_auth_service.authenticate_user(user.username, password)
@@ -48,8 +46,6 @@ async def verify(password: str, token: str = Depends(oauth2_scheme)) -> Dict[str
 @router.get("/test", include_in_schema=False,
             responses=get_response_models(Dict[str, str], [200, 500]))
 async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
-    jwt_auth_service = JWTAuthenticationService()
-
     try:
         jwt_auth_service.get_access_token_payload(token)
         return dict(message=EAuthenticationStatus.AUTHENTICATED)
@@ -64,8 +60,6 @@ async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
 @router.get("/jwt_auth_test", tags=["JWT Authentication Test"],
             responses=get_response_models(Dict[str, str], [200, 401, 500]))
 async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
-    jwt_auth_service = JWTAuthenticationService()
-
     try:
         jwt_auth_service.get_access_token_payload(token)
         return dict(message="JWT Authentication works!", token=token)

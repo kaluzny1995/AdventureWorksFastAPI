@@ -96,6 +96,23 @@ def test_get_person_should_return_valid_object(person: PersonInput) -> None:
     drop_tables(db_engine)
 
 
+@pytest.mark.parametrize("person, expected_error", [
+    (PersonInput(person_type=EPersonType.EM, first_name="Dzhejkob", last_name="Awaria"), errors.NotFoundError)
+])
+def test_get_person_should_raise_expected_error(person: PersonInput, expected_error: Exception) -> None:
+    create_tables(db_engine)
+
+    # Arrange
+    person_provider.insert_person(person)
+
+    with pytest.raises(expected_error):
+        # Act
+        # Assert
+        person_provider.get_person(-1)
+
+    drop_tables(db_engine)
+
+
 @pytest.mark.parametrize("person", [
     PersonInput(person_type=EPersonType.IN, first_name="Mark", last_name="Sharon"),
     PersonInput(person_type=EPersonType.EM, first_name="Dzhejkob", last_name="Awaria")

@@ -6,12 +6,12 @@ from app.models import AWFAPIUser
 from app.services import JWTAuthenticationService
 from app.error_handlers import raise_400, raise_401, raise_500
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+jwt_auth_service = JWTAuthenticationService()
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> AWFAPIUser:
-    jwt_auth_service = JWTAuthenticationService()
-
     try:
         user = jwt_auth_service.get_user_from_token(token)
         return user

@@ -10,9 +10,17 @@ from app.models import AWFAPIUser, TokenData
 
 
 class JWTAuthenticationService:
-    jwt_auth_config: JWTAuthenticationConfig = JWTAuthenticationConfig.from_json()
-    awfapi_user_provider: AWFAPIUserProvider = AWFAPIUserProvider()
-    awfapi_user_service: AWFAPIUserService = AWFAPIUserService()
+    jwt_auth_config: JWTAuthenticationConfig
+    awfapi_user_provider: AWFAPIUserProvider
+    awfapi_user_service: AWFAPIUserService
+
+    def __init__(self,
+                 jwt_auth_config: Optional[JWTAuthenticationConfig] = None,
+                 awfapi_user_provider: Optional[AWFAPIUserProvider] = None,
+                 awfapi_user_service: Optional[AWFAPIUserService] = None):
+        self.jwt_auth_config = jwt_auth_config or JWTAuthenticationConfig.from_json()
+        self.awfapi_user_provider = awfapi_user_provider or AWFAPIUserProvider()
+        self.awfapi_user_service = awfapi_user_service or AWFAPIUserService()
 
     def authenticate_user(self, username: str, password: str) -> Optional[AWFAPIUser]:
         try:

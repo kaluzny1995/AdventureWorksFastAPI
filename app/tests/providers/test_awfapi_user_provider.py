@@ -45,7 +45,7 @@ def test_get_awfapi_users_should_return_valid_objects(awfapi_users: List[AWFAPIU
             assert au.hashed_password == eau.hashed_password
             assert eau.date_created is not None
             assert eau.date_modified is not None
-    except AssertionError as e:
+    except Exception as e:
         drop_collection(db_engine, collection_name)
         raise e
     else:
@@ -74,7 +74,29 @@ def test_get_awfapi_user_should_return_valid_object(awfapi_user: AWFAPIUserInput
         assert awfapi_user.hashed_password == expected_awfapi_user.hashed_password
         assert expected_awfapi_user.date_created is not None
         assert expected_awfapi_user.date_modified is not None
-    except AssertionError as e:
+    except Exception as e:
+        drop_collection(db_engine, collection_name)
+        raise e
+    else:
+        drop_collection(db_engine, collection_name)
+
+
+@pytest.mark.parametrize("awfapi_user, expected_error", [
+    (AWFAPIUserInput(username="dzhawaria", full_name="Dzhejkob Awaria", email="dzh.awaria@gmail.com",
+                     is_readonly=False, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
+     errors.NotFoundError)
+])
+def test_get_awfapi_user_should_raise_expected_error(awfapi_user: AWFAPIUserInput, expected_error: Exception) -> None:
+    try:
+        # Arrange
+        awfapi_user_provider.insert_awfapi_user(awfapi_user)
+
+        with pytest.raises(expected_error):
+            # Act
+            # Assert
+            awfapi_user_provider.get_awfapi_user("")
+
+    except Exception as e:
         drop_collection(db_engine, collection_name)
         raise e
     else:
@@ -102,7 +124,7 @@ def test_insert_awfapi_user_should_insert_object(awfapi_user: AWFAPIUserInput) -
         assert awfapi_user.hashed_password == expected_awfapi_user.hashed_password
         assert expected_awfapi_user.date_created is not None
         assert expected_awfapi_user.date_modified is not None
-    except (errors.NotFoundError, AssertionError) as e:
+    except Exception as e:
         drop_collection(db_engine, collection_name)
         raise e
     else:
@@ -121,9 +143,9 @@ def test_insert_awfapi_user_should_insert_object(awfapi_user: AWFAPIUserInput) -
                      is_readonly=True, hashed_password="$2b$12$Mvf8/LwNEue1qQrh.UUAruWnIOaIYgYIAQ3vtEqOYQg7/xlJ.XSB6"),
      errors.EmailAlreadyExistsError)
 ])
-def test_insert_awfapi_user_should_raise_error(existing_awfapi_user: AWFAPIUserInput,
-                                               new_awfapi_user: AWFAPIUserInput,
-                                               expected_error: Exception) -> None:
+def test_insert_awfapi_user_should_raise_expected_error(existing_awfapi_user: AWFAPIUserInput,
+                                                        new_awfapi_user: AWFAPIUserInput,
+                                                        expected_error: Exception) -> None:
     # Arrange
     awfapi_user_provider.insert_awfapi_user(existing_awfapi_user)
     # Act
@@ -152,7 +174,7 @@ def test_update_awfapi_user_should_update_object(awfapi_user: AWFAPIUserInput,
                                                  updated_awfapi_user: AWFAPIUserInput) -> None:
     # Arrange
     awfapi_user_username = awfapi_user_provider.insert_awfapi_user(awfapi_user)
-    original_awfapi_username = awfapi_user_provider.get_awfapi_user(awfapi_user_username)
+    original_awfapi_user = awfapi_user_provider.get_awfapi_user(awfapi_user_username)
 
     # Act
     updated_awfapi_user_username = awfapi_user_provider.update_awfapi_user(awfapi_user_username, updated_awfapi_user)
@@ -165,9 +187,9 @@ def test_update_awfapi_user_should_update_object(awfapi_user: AWFAPIUserInput,
         assert updated_awfapi_user.email == expected_awfapi_user.email
         assert updated_awfapi_user.is_readonly == expected_awfapi_user.is_readonly
         assert updated_awfapi_user.hashed_password == expected_awfapi_user.hashed_password
-        assert original_awfapi_username.date_created == expected_awfapi_user.date_created
-        assert original_awfapi_username.date_modified <= expected_awfapi_user.date_modified
-    except (errors.NotFoundError, AssertionError) as e:
+        assert original_awfapi_user.date_created == expected_awfapi_user.date_created
+        assert original_awfapi_user.date_modified <= expected_awfapi_user.date_modified
+    except Exception as e:
         drop_collection(db_engine, collection_name)
         raise e
     else:
@@ -192,10 +214,10 @@ def test_update_awfapi_user_should_update_object(awfapi_user: AWFAPIUserInput,
                      is_readonly=True, hashed_password="$2b$12$dQfVWYA0ko8tjyqglzHd4.2i9lY4x48Q08YsVSMWEIpPqXXTGRkwS"),
      errors.EmailAlreadyExistsError)
 ])
-def test_update_awfapi_user_should_raise_error(existing_awfapi_users: List[AWFAPIUserInput],
-                                               awfapi_user_username: str,
-                                               updated_awfapi_user: AWFAPIUserInput,
-                                               expected_error: Exception) -> None:
+def test_update_awfapi_user_should_raise_expected_error(existing_awfapi_users: List[AWFAPIUserInput],
+                                                        awfapi_user_username: str,
+                                                        updated_awfapi_user: AWFAPIUserInput,
+                                                        expected_error: Exception) -> None:
     # Arrange
     for existing_awfapi_user in existing_awfapi_users:
         awfapi_user_provider.insert_awfapi_user(existing_awfapi_user)
@@ -229,7 +251,7 @@ def test_delete_awfapi_user_should_delete_object(awfapi_user: AWFAPIUserInput) -
     with pytest.raises(errors.NotFoundError):
         try:
             awfapi_user_provider.get_awfapi_user(awfapi_user_username)
-        except errors.NotFoundError as e:
+        except Exception as e:
             drop_collection(db_engine, collection_name)
             raise e
         else:

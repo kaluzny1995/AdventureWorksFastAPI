@@ -5,15 +5,17 @@ from typing import Optional, List
 from app import errors
 from app.config import MongodbConnectionConfig
 from app.models import AWFAPIUserInput, AWFAPIUser
+from app.providers import IAWFAPIUserProvider
 
 
-class AWFAPIUserProvider:
+class AWFAPIUserProvider(IAWFAPIUserProvider):
     connection_string: str
     collection_name: str
     db_engine: pymongo.MongoClient
 
     def __init__(self, connection_string: Optional[str] = None, collection_name: Optional[str] = None,
                  db_engine: Optional[pymongo.MongoClient] = None):
+        super(AWFAPIUserProvider, self).__init__()
         self.connection_string = connection_string or MongodbConnectionConfig.get_db_connection_string()
         self.collection_name = collection_name or MongodbConnectionConfig.get_collection_name()
         self.db_engine = db_engine or pymongo.MongoClient(self.connection_string)
@@ -33,8 +35,8 @@ class AWFAPIUserProvider:
         return AWFAPIUser(**awfapi_user_definition)
 
     def insert_awfapi_user(self, awfapi_user_input: AWFAPIUserInput) -> str:
-        self.guard_unique_username(awfapi_user_input.username)
-        self.guard_unique_email(awfapi_user_input.email)
+        self.__guard_unique_username(awfapi_user_input.username)
+        self.__guard_unique_email(awfapi_user_input.email)
 
         awfapi_user = AWFAPIUser(date_created=dt.datetime.utcnow(), date_modified=dt.datetime.utcnow(),
                                  **awfapi_user_input.dict())
@@ -43,8 +45,8 @@ class AWFAPIUserProvider:
 
     def update_awfapi_user(self, username: str, awfapi_user_input: AWFAPIUserInput) -> str:
         updated_awfapi_user = self.get_awfapi_user(username)
-        self.guard_unique_username(awfapi_user_input.username, updated_awfapi_user.username)
-        self.guard_unique_email(awfapi_user_input.email, updated_awfapi_user.email)
+        self.__guard_unique_username(awfapi_user_input.username, updated_awfapi_user.username)
+        self.__guard_unique_email(awfapi_user_input.email, updated_awfapi_user.email)
 
         updated_awfapi_user.update_from_input(awfapi_user_input)
         updated_awfapi_user.date_modified = dt.datetime.utcnow()
@@ -56,7 +58,7 @@ class AWFAPIUserProvider:
         self.get_awfapi_user(username)
         self.db_engine.awfapi[self.collection_name].delete_one({'username': {"$eq": username}})
 
-    def guard_unique_username(self, new_username: str, current_username: Optional[str] = None) -> None:
+    def __guard_unique_username(self, new_username: str, current_username: Optional[str] = None) -> None:
         awfapi_users = self.get_awfapi_users()
         other_usernames = list(map(lambda au: au.username,
                                    filter(lambda au: au.username != current_username, awfapi_users)))
@@ -64,7 +66,7 @@ class AWFAPIUserProvider:
         if new_username in other_usernames:
             raise errors.UsernameAlreadyExistsError(f"Provided username '{new_username}' already exists.")
 
-    def guard_unique_email(self, new_email: str, current_email: Optional[str] = None) -> None:
+    def __guard_unique_email(self, new_email: str, current_email: Optional[str] = None) -> None:
         awfapi_users = self.get_awfapi_users()
         other_emails = list(map(lambda au: au.email,
                                 filter(lambda au: au.email != current_email, awfapi_users)))

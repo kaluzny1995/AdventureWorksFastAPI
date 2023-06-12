@@ -1,3 +1,4 @@
+from app.providers.i_awfapi_user_provider import IAWFAPIUserProvider
 from app.providers.awfapi_user_provider import AWFAPIUserProvider
 from app.providers.table_metadata_provider import TableMetadataProvider
 
