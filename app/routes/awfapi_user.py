@@ -81,7 +81,8 @@ def update_awfapi_user(
 def delete_awfapi_user(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
     try:
         awfapi_user_provider.delete_awfapi_user(awfapi_user_username)
-        return Message(info="AWFAPI user deleted", message=f"AWFAPI user of given username '{awfapi_user_username}' deleted.")
+        return Message(title="AWFAPI user deleted",
+                       description=f"AWFAPI user of given username '{awfapi_user_username}' deleted.")
     except errors.NotFoundError as e:
         raise_404(e, "AWFAPI User", awfapi_user_username)
     except Exception as e:
@@ -106,7 +107,7 @@ def register_awfapi_user(
         awfapi_registered_user: AWFAPIRegisteredUser = Body(None, examples=AWFAPIRegisteredUser.Config.schema_extra["examples"])) -> Message:
     try:
         new_awfapi_user_username = awfapi_user_service.register_awfapi_user(awfapi_registered_user)
-        return Message(info="User registered", message=f"New user '{new_awfapi_user_username}' registered.")
+        return Message(title="User registered", description=f"New user '{new_awfapi_user_username}' registered.")
     except (errors.UsernameAlreadyExistsError, errors.EmailAlreadyExistsError) as e:
         raise_400(e)
     except Exception as e:
@@ -121,7 +122,7 @@ def change_awfapi_user_data(
         _: AWFAPIUser = Depends(get_current_user)) -> Message:
     try:
         updated_awfapi_user_username = awfapi_user_service.change_awfapi_user_data(awfapi_user_username, awfapi_changed_user_data)
-        return Message(info="User data changed", message=f"Data of user '{updated_awfapi_user_username}' changed.")
+        return Message(title="User data changed", description=f"Data of user '{updated_awfapi_user_username}' changed.")
     except (errors.UsernameAlreadyExistsError, errors.EmailAlreadyExistsError, errors.InvalidCredentialsError) as e:
         raise_400(e)
     except errors.NotFoundError as e:
@@ -138,7 +139,8 @@ def change_awfapi_user_credentials(
         _: AWFAPIUser = Depends(get_current_user)) -> Message:
     try:
         updated_awfapi_user_username = awfapi_user_service.change_awfapi_user_credentials(awfapi_user_username, awfapi_changed_user_credentials)
-        return Message(info="User credentials changed", message=f"Credentials of user '{updated_awfapi_user_username}' changed.")
+        return Message(title="User credentials changed",
+                       description=f"Credentials of user '{updated_awfapi_user_username}' changed.")
     except (errors.UsernameAlreadyExistsError, errors.EmailAlreadyExistsError, errors.InvalidCredentialsError) as e:
         raise_400(e)
     except errors.NotFoundError as e:
@@ -152,7 +154,7 @@ def change_awfapi_user_credentials(
 def remove_awfapi_user_account(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_user)) -> Message:
     try:
         awfapi_user_service.remove_awfapi_user_account(awfapi_user_username)
-        return Message(info="Account removed", message=f"Account of user '{awfapi_user_username}' removed.")
+        return Message(title="Account removed", description=f"Account of user '{awfapi_user_username}' removed.")
     except errors.NotFoundError as e:
         raise_404(e, "User", awfapi_user_username)
     except Exception as e:

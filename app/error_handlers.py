@@ -23,7 +23,7 @@ def raise_400(e: Exception):
         unique_field, value = utils.get_unique_field_name_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
-                                "info": f"Field '{unique_field}' uniqueness",
+                                "title": f"Field '{unique_field}' uniqueness",
                                 "detail": f"Field '{unique_field}' must have unique values. "
                                           f"Provided value '{value}' already exists."
                             })
@@ -32,14 +32,14 @@ def raise_400(e: Exception):
         username = utils.get_username_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
-                                "info": f"Readonly access for '{username}'",
+                                "title": f"Readonly access for '{username}'",
                                 "detail": e_message
                             })
 
     elif "current password" in e_message:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
-                                "info": e_message,
+                                "title": e_message,
                                 "detail": f"User provided {e_message.lower()}"
                             })
 
@@ -47,12 +47,12 @@ def raise_400(e: Exception):
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
-                                "info": "Related entity id does not exist",
+                                "title": "Related entity id does not exist",
                                 "detail": f"Related entity {foreign_key_details['entity']} "
                                           f"has no entry of given id "
                                           f"{foreign_key_details['key_column']}=({foreign_key_details['key_value']})."
                             },
-                            headers={"message": foreign_key_details['line']})
+                            headers={"description": foreign_key_details['line']})
 
     else:
         raise e
@@ -72,34 +72,34 @@ def raise_404(e: Exception, entity: str, entity_id: object, info: Optional[str] 
     if info is not None and detail is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail={
-                                "info": info,
+                                "title": info,
                                 "detail": detail
                             },
-                            headers={"message": str(e)})
+                            headers={"description": str(e)})
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail={
-                                "info": f"{entity} not found",
+                                "title": f"{entity} not found",
                                 "detail": f"{entity} of given id {entity_id} was not found."
                             },
-                            headers={"message": str(e)})
+                            headers={"description": str(e)})
 
 
 def raise_500(e: Exception):
     """ Raises 500 when other unknown error occurred """
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail={
-                            "info": "Internal error occurred.",
+                            "title": "Internal error occurred.",
                             "detail": f"An internal error occurred: {str(e)}"
                         },
-                        headers={"message": str(e)})
+                        headers={"description": str(e)})
 
 
 async def custom_http_error_handler(request: Request, exc: StarletteHTTPException):
 
     if request.url.path == "/test" and exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # executed only for "/test" url endpoint, which checks the authentication status
-        # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" message
+        # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" description
         return JSONResponse(status_code=200, content=dict(message=EAuthenticationStatus.UNAUTHENTICATED))
 
     print(f"Error occurred. {str(exc)}")
