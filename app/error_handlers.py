@@ -20,7 +20,7 @@ def raise_400(e: Exception):
     print(e_message)
 
     if "already exists" in e_message:
-        unique_field, value = utils.get_unique_field_name_from_message(e_message)
+        unique_field, value = utils.get_unique_field_details_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
                                 "title": f"Field '{unique_field}' uniqueness",
@@ -44,6 +44,7 @@ def raise_400(e: Exception):
                             })
 
     elif "ForeignKeyViolation" in e_message:
+        print(e_message)
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
