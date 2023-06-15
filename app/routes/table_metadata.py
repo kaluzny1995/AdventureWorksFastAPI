@@ -33,7 +33,7 @@ def get_table_metadatas(schema_name: Optional[str] = None, table_name: Optional[
         return table_metadatas
     except errors.NotFoundError as e:
         raise_404(e, "Tables", "all",
-                  info="Tables not found",
+                  info="Tables not found.",
                   detail=f"No tables found for given criteria "
                          f"(schema_name: {schema_name} | table_name: {table_name}).")
     except Exception as e:

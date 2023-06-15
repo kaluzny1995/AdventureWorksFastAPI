@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import List
 
 from app import errors
-from app.models import AWFAPIUser, PersonPhoneInput, PersonPhone, Message, get_response_models
+from app.models import AWFAPIUser, PersonPhoneInput, PersonPhone, ResponseMessage, get_response_models
 from app.providers import PersonPhoneProvider
 
 from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
@@ -72,14 +72,15 @@ def update_person_phone(person_id: int, phone_number: str, phone_number_type_id:
 
 
 @router.delete("/delete_person_phone/{person_id}/{phone_number}/{phone_number_type_id}", tags=["Person Phones"],
-               responses=get_response_models(Message, [200, 400, 401, 404, 500]))
+               responses=get_response_models(ResponseMessage, [200, 400, 401, 404, 500]))
 def delete_person_phone(person_id: int, phone_number: str, phone_number_type_id: int,
-                        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
+                        _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> ResponseMessage:
     person_phone_id = (person_id, phone_number, phone_number_type_id)
     try:
         person_phone_provider.delete_person_phone(person_phone_id)
-        return Message(info="Person phone deleted",
-                       message=f"Person phone of given id {person_phone_id} deleted.")
+        return ResponseMessage(title="Person phone deleted.",
+                               description=f"Person phone of given id {person_phone_id} deleted.",
+                               code=status.HTTP_200_OK)
     except errors.NotFoundError as e:
         raise_404(e, "Person phone", person_phone_id)
     except Exception as e:

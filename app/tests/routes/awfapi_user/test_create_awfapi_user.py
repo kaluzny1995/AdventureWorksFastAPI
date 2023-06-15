@@ -1,9 +1,10 @@
 import pytest
 import pymongo
 from starlette.testclient import TestClient
+from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -63,7 +64,7 @@ def test_create_awfapi_user_should_return_201_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 201
+        assert response.status_code == status.HTTP_201_CREATED
         new_awfapi_user = AWFAPIUser(**response.json())
         assert new_awfapi_user.username == awfapi_user.username
         assert new_awfapi_user.full_name == awfapi_user.full_name
@@ -82,21 +83,28 @@ def test_create_awfapi_user_should_return_201_response(client, monkeypatch,
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     "Current user 'testuser' has readonly restricted access."),
+     ResponseMessage(title="Readonly access for 'testuser'.",
+                     description="Current user 'testuser' has readonly restricted access.",
+                     code=status.HTTP_400_BAD_REQUEST)),
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
      AWFAPIUserInput(username="testuser", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     "Field 'username' must have unique values. Provided value 'testuser' already exists."),
+     ResponseMessage(title="Field 'username' uniqueness.",
+                     description="Field 'username' must have unique values. Provided value 'testuser' already exists.",
+                     code=status.HTTP_400_BAD_REQUEST)),
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     "Field 'email' must have unique values. Provided value 'test.user@test.user' already exists.")
+     ResponseMessage(title="Field 'email' uniqueness.",
+                     description="Field 'email' must have unique values. Provided value 'test.user@test.user' already exists.",
+                     code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_create_awfapi_user_should_return_400_response(client, monkeypatch,
                                                        awfapi_registered_user: AWFAPIRegisteredUser,
-                                                       awfapi_user: AWFAPIUserInput, expected_message: str) -> None:
+                                                       awfapi_user: AWFAPIUserInput,
+                                                       expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -113,9 +121,10 @@ def test_create_awfapi_user_should_return_400_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 400
-        response_dict = response.json()
-        assert response_dict['detail']['detail'] == expected_message
+        message = ResponseMessage(**response.json()['detail'])
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -124,15 +133,19 @@ def test_create_awfapi_user_should_return_400_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, awfapi_user", [
+@pytest.mark.parametrize("awfapi_registered_user, awfapi_user, expected_message", [
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"))
+                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
+     ResponseMessage(title="JWT token not provided or wrong encoded.",
+                     description="User did not provide or the JWT token is wrongly encoded.",
+                     code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_create_awfapi_user_should_return_401_response(client, monkeypatch,
                                                        awfapi_registered_user: AWFAPIRegisteredUser,
-                                                       awfapi_user: AWFAPIUserInput) -> None:
+                                                       awfapi_user: AWFAPIUserInput,
+                                                       expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -146,9 +159,10 @@ def test_create_awfapi_user_should_return_401_response(client, monkeypatch,
         response = client.post("/create_awfapi_user", data=awfapi_user.json())
 
         # Assert
-        assert response.status_code == 401
-        response_dict = response.json()
-        assert response_dict['detail'] == "Not authenticated"
+        message = ResponseMessage(**response.json())
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)

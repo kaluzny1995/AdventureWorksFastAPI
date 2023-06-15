@@ -1,9 +1,10 @@
 import pytest
 import pymongo
 from starlette.testclient import TestClient
+from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIRegisteredUser
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -36,17 +37,23 @@ def client():
         yield test_client
 
 
-@pytest.mark.parametrize("awfapi_registered_user, password, is_password_verified", [
+@pytest.mark.parametrize("awfapi_registered_user, password, expected_message", [
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testpassword", True),
+     "testpassword",
+     ResponseMessage(title="VERIFIED",
+                     description="Users password is verified.",
+                     code=status.HTTP_200_OK)),
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testpassword2", False)
+     "testpassword2",
+     ResponseMessage(title="UNVERIFIED",
+                     description="Users password is not verified.",
+                     code=status.HTTP_200_OK))
 ])
 def test_verify_should_return_200_response(client, monkeypatch,
                                            awfapi_registered_user: AWFAPIRegisteredUser, password: str,
-                                           is_password_verified: bool) -> None:
+                                           expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
@@ -59,9 +66,10 @@ def test_verify_should_return_200_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 200
-        response_dict = response.json()
-        assert response_dict['verified'] == is_password_verified
+        message = ResponseMessage(**response.json())
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -70,13 +78,17 @@ def test_verify_should_return_200_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, password", [
+@pytest.mark.parametrize("awfapi_registered_user, password, expected_message", [
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testpassword")
+     "testpassword",
+     ResponseMessage(title="JWT token not provided or wrong encoded.",
+                     description="User did not provide or the JWT token is wrongly encoded.",
+                     code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_verify_should_return_401_response(client, monkeypatch,
-                                           awfapi_registered_user: AWFAPIRegisteredUser, password: str) -> None:
+                                           awfapi_registered_user: AWFAPIRegisteredUser, password: str,
+                                           expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
@@ -86,9 +98,10 @@ def test_verify_should_return_401_response(client, monkeypatch,
         response = client.get(f"/verify/{password}")
 
         # Assert
-        assert response.status_code == 401
-        response_dict = response.json()
-        assert response_dict['detail'] == "Not authenticated"
+        message = ResponseMessage(**response.json())
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)

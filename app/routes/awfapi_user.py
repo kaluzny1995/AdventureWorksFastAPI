@@ -4,7 +4,7 @@ from typing import List
 from app import errors
 from app.models import AWFAPIUserInput, AWFAPIUser,\
     AWFAPIViewedUser, AWFAPIRegisteredUser, AWFAPIChangedUserData, AWFAPIChangedUserCredentials,\
-    Message, get_response_models
+    ResponseMessage, get_response_models
 from app.providers import AWFAPIUserProvider
 from app.services import AWFAPIUserService
 
@@ -19,7 +19,7 @@ awfapi_user_service = AWFAPIUserService()
 
 
 @router.get("/all_awfapi_users", tags=["AWFAPI Users"],
-            responses=get_response_models(List[AWFAPIUser], [200, 401, 500]), include_in_schema=True)
+            responses=get_response_models(List[AWFAPIUser], [200, 401, 500]), include_in_schema=False)
 def get_awfapi_users(offset: int = 0, limit: int = 10,
                      _: AWFAPIUser = Depends(get_current_user)) -> List[AWFAPIUser]:
     try:
@@ -30,7 +30,7 @@ def get_awfapi_users(offset: int = 0, limit: int = 10,
 
 
 @router.get("/get_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
-            responses=get_response_models(AWFAPIUser, [200, 401, 404, 500]), include_in_schema=True)
+            responses=get_response_models(AWFAPIUser, [200, 401, 404, 500]), include_in_schema=False)
 def get_awfapi_user(awfapi_user_username: str,
                     _: AWFAPIUser = Depends(get_current_user)) -> AWFAPIUser:
     try:
@@ -44,7 +44,7 @@ def get_awfapi_user(awfapi_user_username: str,
 
 @router.post("/create_awfapi_user", tags=["AWFAPI Users"],
              responses=get_response_models(AWFAPIUser, [201, 400, 401, 500]),
-             status_code=status.HTTP_201_CREATED, include_in_schema=True)
+             status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def create_awfapi_user(
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
         _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> AWFAPIUser:
@@ -59,7 +59,7 @@ def create_awfapi_user(
 
 
 @router.put("/update_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
-            responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=True)
+            responses=get_response_models(AWFAPIUser, [200, 400, 401, 404, 500]), include_in_schema=False)
 def update_awfapi_user(
         awfapi_user_username: str,
         awfapi_user_input: AWFAPIUserInput = Body(None, examples=AWFAPIUserInput.Config.schema_extra["examples"]),
@@ -77,12 +77,13 @@ def update_awfapi_user(
 
 
 @router.delete("/delete_awfapi_user/{awfapi_user_username}", tags=["AWFAPI Users"],
-               responses=get_response_models(Message, [200, 400, 401, 404, 500]), include_in_schema=True)
-def delete_awfapi_user(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
+               responses=get_response_models(ResponseMessage, [200, 400, 401, 404, 500]), include_in_schema=False)
+def delete_awfapi_user(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> ResponseMessage:
     try:
         awfapi_user_provider.delete_awfapi_user(awfapi_user_username)
-        return Message(title="AWFAPI user deleted",
-                       description=f"AWFAPI user of given username '{awfapi_user_username}' deleted.")
+        return ResponseMessage(title="AWFAPI user deleted.",
+                               description=f"AWFAPI user of given username '{awfapi_user_username}' deleted.",
+                               code=status.HTTP_200_OK)
     except errors.NotFoundError as e:
         raise_404(e, "AWFAPI User", awfapi_user_username)
     except Exception as e:
@@ -102,12 +103,14 @@ def view_awfapi_user_profile(awfapi_user_username: str,
 
 
 @router.post("/register_awfapi_user", tags=["AWFAPI Users"],
-             responses=get_response_models(Message, [201, 400, 500]), status_code=status.HTTP_201_CREATED)
+             responses=get_response_models(ResponseMessage, [201, 400, 500]), status_code=status.HTTP_201_CREATED)
 def register_awfapi_user(
-        awfapi_registered_user: AWFAPIRegisteredUser = Body(None, examples=AWFAPIRegisteredUser.Config.schema_extra["examples"])) -> Message:
+        awfapi_registered_user: AWFAPIRegisteredUser = Body(None, examples=AWFAPIRegisteredUser.Config.schema_extra["examples"])) -> ResponseMessage:
     try:
         new_awfapi_user_username = awfapi_user_service.register_awfapi_user(awfapi_registered_user)
-        return Message(title="User registered", description=f"New user '{new_awfapi_user_username}' registered.")
+        return ResponseMessage(title="User registered.",
+                               description=f"New user '{new_awfapi_user_username}' registered.",
+                               code=status.HTTP_201_CREATED)
     except (errors.UsernameAlreadyExistsError, errors.EmailAlreadyExistsError) as e:
         raise_400(e)
     except Exception as e:
@@ -115,14 +118,16 @@ def register_awfapi_user(
 
 
 @router.put("/change_awfapi_user_data/{awfapi_user_username}", tags=["AWFAPI Users"],
-            responses=get_response_models(Message, [200, 400, 401, 404, 500]))
+            responses=get_response_models(ResponseMessage, [200, 400, 401, 404, 500]))
 def change_awfapi_user_data(
         awfapi_user_username: str,
         awfapi_changed_user_data: AWFAPIChangedUserData = Body(None, examples=AWFAPIChangedUserData.Config.schema_extra["examples"]),
-        _: AWFAPIUser = Depends(get_current_user)) -> Message:
+        _: AWFAPIUser = Depends(get_current_user)) -> ResponseMessage:
     try:
         updated_awfapi_user_username = awfapi_user_service.change_awfapi_user_data(awfapi_user_username, awfapi_changed_user_data)
-        return Message(title="User data changed", description=f"Data of user '{updated_awfapi_user_username}' changed.")
+        return ResponseMessage(title="User data changed.",
+                               description=f"Data of user '{updated_awfapi_user_username}' changed.",
+                               code=status.HTTP_200_OK)
     except (errors.UsernameAlreadyExistsError, errors.EmailAlreadyExistsError, errors.InvalidCredentialsError) as e:
         raise_400(e)
     except errors.NotFoundError as e:
@@ -132,15 +137,16 @@ def change_awfapi_user_data(
 
 
 @router.put("/change_awfapi_user_credentials/{awfapi_user_username}", tags=["AWFAPI Users"],
-            responses=get_response_models(Message, [200, 400, 401, 404, 500]))
+            responses=get_response_models(ResponseMessage, [200, 400, 401, 404, 500]))
 def change_awfapi_user_credentials(
         awfapi_user_username: str,
         awfapi_changed_user_credentials: AWFAPIChangedUserCredentials = Body(None, examples=AWFAPIChangedUserCredentials.Config.schema_extra["examples"]),
-        _: AWFAPIUser = Depends(get_current_user)) -> Message:
+        _: AWFAPIUser = Depends(get_current_user)) -> ResponseMessage:
     try:
         updated_awfapi_user_username = awfapi_user_service.change_awfapi_user_credentials(awfapi_user_username, awfapi_changed_user_credentials)
-        return Message(title="User credentials changed",
-                       description=f"Credentials of user '{updated_awfapi_user_username}' changed.")
+        return ResponseMessage(title="User credentials changed.",
+                               description=f"Credentials of user '{updated_awfapi_user_username}' changed.",
+                               code=status.HTTP_200_OK)
     except (errors.UsernameAlreadyExistsError, errors.EmailAlreadyExistsError, errors.InvalidCredentialsError) as e:
         raise_400(e)
     except errors.NotFoundError as e:
@@ -150,11 +156,13 @@ def change_awfapi_user_credentials(
 
 
 @router.delete("/remove_awfapi_user_account/{awfapi_user_username}", tags=["AWFAPI Users"],
-               responses=get_response_models(Message, [200, 401, 404, 500]))
-def remove_awfapi_user_account(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_user)) -> Message:
+               responses=get_response_models(ResponseMessage, [200, 401, 404, 500]))
+def remove_awfapi_user_account(awfapi_user_username: str, _: AWFAPIUser = Depends(get_current_user)) -> ResponseMessage:
     try:
         awfapi_user_service.remove_awfapi_user_account(awfapi_user_username)
-        return Message(title="Account removed", description=f"Account of user '{awfapi_user_username}' removed.")
+        return ResponseMessage(title="Account removed.",
+                               description=f"Account of user '{awfapi_user_username}' removed.",
+                               code=status.HTTP_200_OK)
     except errors.NotFoundError as e:
         raise_404(e, "User", awfapi_user_username)
     except Exception as e:

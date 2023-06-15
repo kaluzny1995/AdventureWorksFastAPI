@@ -1,9 +1,10 @@
 import pytest
 import pymongo
 from starlette.testclient import TestClient
+from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -81,7 +82,7 @@ def test_get_awfapi_user_should_return_200_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         awfapi_user = AWFAPIUser(**response.json())
         assert awfapi_user.username == expected_awfapi_user.username
         assert awfapi_user.full_name == expected_awfapi_user.full_name
@@ -95,14 +96,18 @@ def test_get_awfapi_user_should_return_200_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username", [
+@pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username, expected_message", [
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "dzhawaria")
+     "dzhawaria",
+     ResponseMessage(title="JWT token not provided or wrong encoded.",
+                     description="User did not provide or the JWT token is wrongly encoded.",
+                     code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_get_awfapi_user_should_return_401_response(client, monkeypatch,
                                                     awfapi_registered_user: AWFAPIRegisteredUser,
-                                                    awfapi_user_username: str) -> None:
+                                                    awfapi_user_username: str,
+                                                    expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -118,9 +123,10 @@ def test_get_awfapi_user_should_return_401_response(client, monkeypatch,
         response = client.get(f"/get_awfapi_user/{awfapi_user_username}")
 
         # Assert
-        assert response.status_code == 401
-        response_dict = response.json()
-        assert response_dict['detail'] == "Not authenticated"
+        message = ResponseMessage(**response.json())
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -129,14 +135,18 @@ def test_get_awfapi_user_should_return_401_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username", [
+@pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username, expected_message", [
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "dzhawaria2")
+     "dzhawaria2",
+     ResponseMessage(title="AWFAPI User not found.",
+                     description="AWFAPI User of given id 'dzhawaria2' was not found.",
+                     code=status.HTTP_404_NOT_FOUND))
 ])
 def test_get_awfapi_user_should_return_404_response(client, monkeypatch,
                                                     awfapi_registered_user: AWFAPIRegisteredUser,
-                                                    awfapi_user_username: str) -> None:
+                                                    awfapi_user_username: str,
+                                                    expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -155,9 +165,10 @@ def test_get_awfapi_user_should_return_404_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 404
-        response_dict = response.json()
-        assert response_dict['detail']['detail'] == "AWFAPI User of given id dzhawaria2 was not found."
+        message = ResponseMessage(**response.json()['detail'])
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)

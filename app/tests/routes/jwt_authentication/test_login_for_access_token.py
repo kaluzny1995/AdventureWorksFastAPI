@@ -1,9 +1,10 @@
 import pytest
 import pymongo
 from starlette.testclient import TestClient
+from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import Token, AWFAPIRegisteredUser
+from app.models import ResponseMessage, Token, AWFAPIRegisteredUser
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -55,7 +56,7 @@ def test_login_for_access_token_should_return_200_response(client, monkeypatch,
         token_user = jwt_authentication_service.get_user_from_token(token.access_token)
 
         # Assert
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert token.token_type == "bearer"
         assert token_user.username == awfapi_registered_user.username
 
@@ -69,15 +70,21 @@ def test_login_for_access_token_should_return_200_response(client, monkeypatch,
 @pytest.mark.parametrize("awfapi_registered_user, username, password, expected_message", [
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testuser2", "testpassword", "Invalid username."),
+     "testuser2", "testpassword",
+     ResponseMessage(title="Not authorized.",
+                     description="Invalid username.",
+                     code=status.HTTP_401_UNAUTHORIZED)),
     (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testuser", "testpassword2", "Invalid password.")
+     "testuser", "testpassword2",
+     ResponseMessage(title="Not authorized.",
+                     description="Invalid password.",
+                     code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_login_for_access_token_should_return_401_response(client, monkeypatch,
                                                            awfapi_registered_user: AWFAPIRegisteredUser,
                                                            username: str, password: str,
-                                                           expected_message: str) -> None:
+                                                           expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
@@ -87,9 +94,10 @@ def test_login_for_access_token_should_return_401_response(client, monkeypatch,
         response = client.post("/token", data={'username': username, 'password': password})
 
         # Assert
-        assert response.status_code == 401
-        response_dict = response.json()
-        assert response_dict['detail'] == expected_message
+        message = ResponseMessage(**response.json()['detail'])
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)

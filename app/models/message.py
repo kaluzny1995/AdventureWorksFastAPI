@@ -1,20 +1,9 @@
 from pydantic import BaseModel
 
 
-class Message(BaseModel):
+class ResponseMessage(BaseModel):
     title: str
     description: str
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "title": "Message title",
-                "description": "Long description of message details."
-            }
-        }
-
-
-class ResponseMessage(Message):
     code: int
 
     class Config:
@@ -23,5 +12,22 @@ class ResponseMessage(Message):
                 "title": "Message title",
                 "description": "Long description of message details.",
                 "code": 200
+            }
+        }
+
+
+class ForeignKeyErrorDetails(BaseModel):
+    line: str
+    entity: str
+    key_column: str
+    key_value: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "line": "DETAIL:  Key (PhoneNumberTypeID)=(10) is not present in table \"PhoneNumberType\".",
+                "entity": "PhoneNumberType",
+                "key_column": "PhoneNumberTypeID",
+                "key_value": "10"
             }
         }

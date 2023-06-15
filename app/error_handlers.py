@@ -6,7 +6,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 from typing import Optional
 
 from app import utils
-from app.models import EAuthenticationStatus
+from app.models import EAuthenticationStatus, ResponseMessage
 
 
 def raise_400(e: Exception):
@@ -17,43 +17,41 @@ def raise_400(e: Exception):
     * entity insertion/update violated the certain db constraints
     """
     e_message = str(e)
-    print(e_message)
 
     if "already exists" in e_message:
         unique_field, value = utils.get_unique_field_details_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail={
-                                "title": f"Field '{unique_field}' uniqueness",
-                                "detail": f"Field '{unique_field}' must have unique values. "
-                                          f"Provided value '{value}' already exists."
-                            })
+                            detail=ResponseMessage(title=f"Field '{unique_field}' uniqueness.",
+                                                   description=f"Field '{unique_field}' must have unique values. "
+                                                               f"Provided value '{value}' already exists.",
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": str(e)})
 
     elif "readonly" in e_message:
         username = utils.get_username_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail={
-                                "title": f"Readonly access for '{username}'",
-                                "detail": e_message
-                            })
+                            detail=ResponseMessage(title=f"Readonly access for '{username}'.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": str(e)})
 
     elif "current password" in e_message:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail={
-                                "title": e_message,
-                                "detail": f"User provided {e_message.lower()}"
-                            })
+                            detail=ResponseMessage(title=f"Wrong current password.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": str(e)})
 
     elif "ForeignKeyViolation" in e_message:
-        print(e_message)
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail={
-                                "title": "Related entity id does not exist",
-                                "detail": f"Related entity {foreign_key_details['entity']} "
-                                          f"has no entry of given id "
-                                          f"{foreign_key_details['key_column']}=({foreign_key_details['key_value']})."
-                            },
-                            headers={"description": foreign_key_details['line']})
+                            detail=ResponseMessage(title="Related entity id does not exist.",
+                                                   description=f"Related entity '{foreign_key_details.entity}' "
+                                                               f"has no entry of given id "
+                                                               f"'{foreign_key_details.key_column}="
+                                                               f"({foreign_key_details.key_value})'.",
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": foreign_key_details.line})
 
     else:
         raise e
@@ -63,8 +61,10 @@ def raise_401(e: Exception):
     """ Raises 401 when user is not authorized, authentication failed or access token has expired """
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=str(e),
-        headers={"WWW-Authenticate": "Bearer"}
+        detail=ResponseMessage(title="Not authorized.",
+                               description=str(e),
+                               code=status.HTTP_401_UNAUTHORIZED).dict(),
+        headers={"description": str(e)}
     )
 
 
@@ -72,27 +72,24 @@ def raise_404(e: Exception, entity: str, entity_id: object, info: Optional[str] 
     """ Raises 404 when entity of given id or criteria was not found """
     if info is not None and detail is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={
-                                "title": info,
-                                "detail": detail
-                            },
+                            detail=ResponseMessage(title=info,
+                                                   description=detail,
+                                                   code=status.HTTP_404_NOT_FOUND).dict(),
                             headers={"description": str(e)})
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={
-                                "title": f"{entity} not found",
-                                "detail": f"{entity} of given id {entity_id} was not found."
-                            },
+                            detail=ResponseMessage(title=f"{entity} not found.",
+                                                   description=f"{entity} of given id '{entity_id}' was not found.",
+                                                   code=status.HTTP_404_NOT_FOUND).dict(),
                             headers={"description": str(e)})
 
 
 def raise_500(e: Exception):
     """ Raises 500 when other unknown error occurred """
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail={
-                            "title": "Internal error occurred.",
-                            "detail": f"An internal error occurred: {str(e)}"
-                        },
+                        detail=ResponseMessage(title="Internal error occurred.",
+                                               description=f"An internal error occurred: {str(e)}",
+                                               code=status.HTTP_500_INTERNAL_SERVER_ERROR).dict(),
                         headers={"description": str(e)})
 
 
@@ -101,7 +98,21 @@ async def custom_http_error_handler(request: Request, exc: StarletteHTTPExceptio
     if request.url.path == "/test" and exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # executed only for "/test" url endpoint, which checks the authentication status
         # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" description
-        return JSONResponse(status_code=200, content=dict(message=EAuthenticationStatus.UNAUTHENTICATED))
+        return JSONResponse(status_code=status.HTTP_200_OK,
+                            content=ResponseMessage(
+                                title=EAuthenticationStatus.UNAUTHENTICATED,
+                                description=f"Users authentication status: {EAuthenticationStatus.UNAUTHENTICATED}.",
+                                code=status.HTTP_200_OK
+                            ).dict())
+
+    if exc.headers.get("WWW-Authenticate", None) is not None:
+        # executed if oauth2_scheme fails (i.e. JWT token is empty) and then returns 401 response
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED,
+                            content=ResponseMessage(
+                                title="JWT token not provided or wrong encoded.",
+                                description="User did not provide or the JWT token is wrongly encoded.",
+                                code=status.HTTP_401_UNAUTHORIZED
+                            ).dict())
 
     print(f"Error occurred. {str(exc)}")
     if exc.status_code == status.HTTP_400_BAD_REQUEST:

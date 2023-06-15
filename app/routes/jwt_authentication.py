@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import Dict, Union
 
 from app import errors
-from app.models import AWFAPIUser, Token, get_response_models, EAuthenticationStatus
+from app.models import ResponseMessage, Token, AWFAPIUser, get_response_models, \
+    EAuthenticationStatus, EPasswordVerificationStatus
 from app.services import JWTAuthenticationService
 from app.oauth2_handlers import oauth2_scheme, get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_401, raise_500
@@ -28,15 +28,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @router.get("/verify/{password}", include_in_schema=False,
-            responses=get_response_models(Dict[str, Union[str, bool]], [200, 401, 500]))
-async def verify(password: str, token: str = Depends(oauth2_scheme)) -> Dict[str, Union[str, bool]]:
+            responses=get_response_models(ResponseMessage, [200, 401, 500]))
+async def verify(password: str, token: str = Depends(oauth2_scheme)) -> ResponseMessage:
     try:
         user = jwt_auth_service.get_user_from_token(token)
         jwt_auth_service.authenticate_user(user.username, password)
-        return dict(verified=True)
+        return ResponseMessage(title=EPasswordVerificationStatus.VERIFIED,
+                               description="Users password is verified.",
+                               code=status.HTTP_200_OK)
     except errors.InvalidCredentialsError as e:
         if "password" in str(e):
-            return dict(verified=False)
+            return ResponseMessage(title=EPasswordVerificationStatus.UNVERIFIED,
+                                   description="Users password is not verified.",
+                                   code=status.HTTP_200_OK)
         else:
             raise_401(e)
     except Exception as e:
@@ -44,25 +48,31 @@ async def verify(password: str, token: str = Depends(oauth2_scheme)) -> Dict[str
 
 
 @router.get("/test", include_in_schema=False,
-            responses=get_response_models(Dict[str, str], [200, 500]))
-async def test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
+            responses=get_response_models(ResponseMessage, [200, 500]))
+async def test(token: str = Depends(oauth2_scheme)) -> ResponseMessage:
     try:
         jwt_auth_service.get_access_token_payload(token)
-        return dict(message=EAuthenticationStatus.AUTHENTICATED)
+        return ResponseMessage(title=EAuthenticationStatus.AUTHENTICATED,
+                               description=f"Users authentication status: {EAuthenticationStatus.AUTHENTICATED}.",
+                               code=status.HTTP_200_OK)
     except errors.JWTTokenSignatureExpiredError:
-        return dict(message=EAuthenticationStatus.EXPIRED)
+        return ResponseMessage(title=EAuthenticationStatus.EXPIRED,
+                               description=f"Users authentication status: {EAuthenticationStatus.EXPIRED}.",
+                               code=status.HTTP_200_OK)
     except errors.InvalidCredentialsError:
-        return dict(message=EAuthenticationStatus.UNAUTHENTICATED)
+        return ResponseMessage(title=EAuthenticationStatus.UNAUTHENTICATED,
+                               description=f"Users authentication status: {EAuthenticationStatus.UNAUTHENTICATED}.",
+                               code=status.HTTP_200_OK)
     except Exception as e:
         raise_500(e)
 
 
 @router.get("/jwt_auth_test", tags=["JWT Authentication Test"],
-            responses=get_response_models(Dict[str, str], [200, 401, 500]))
-async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
+            responses=get_response_models(ResponseMessage, [200, 401, 500]))
+async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> ResponseMessage:
     try:
         jwt_auth_service.get_access_token_payload(token)
-        return dict(message="JWT Authentication works!", token=token)
+        return ResponseMessage(title="JWT Authentication works.", description="JWT Authentication worked successfully.", code=status.HTTP_200_OK)
     except (errors.JWTTokenSignatureExpiredError, errors.InvalidCredentialsError) as e:
         raise_401(e)
     except Exception as e:

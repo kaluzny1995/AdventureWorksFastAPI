@@ -1,9 +1,10 @@
 import pytest
 import pymongo
 from starlette.testclient import TestClient
+from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import Message, AWFAPIUserInput, AWFAPIRegisteredUser, AWFAPIChangedUserData
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser, AWFAPIChangedUserData
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -38,19 +39,23 @@ def client():
         yield test_client
 
 
-@pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data", [
+@pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data, expected_message", [
     (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      AWFAPIRegisteredUser(username="testuser2", password="testpassword2", repeated_password="testpassword2",
                           full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
      "testuser2",
-     AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False))
+     AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False),
+     ResponseMessage(title="User data changed.",
+                     description="Data of user 'testuser2' changed.",
+                     code=status.HTTP_200_OK))
 ])
 def test_change_awfapi_user_data_should_return_200_response(client, monkeypatch,
                                                             existing_awfapi_user: AWFAPIUserInput,
                                                             awfapi_registered_user: AWFAPIRegisteredUser,
                                                             awfapi_user_username: str,
-                                                            awfapi_changed_user_data: AWFAPIChangedUserData) -> None:
+                                                            awfapi_changed_user_data: AWFAPIChangedUserData,
+                                                            expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -69,10 +74,10 @@ def test_change_awfapi_user_data_should_return_200_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 200
-        response_message = Message(**response.json())
-        assert response_message.title == "User data changed"
-        assert response_message.description == "Data of user 'testuser2' changed."
+        message = ResponseMessage(**response.json())
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -88,14 +93,16 @@ def test_change_awfapi_user_data_should_return_200_response(client, monkeypatch,
                           full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
      "testuser2",
      AWFAPIChangedUserData(full_name="Test User 2", email="test.user@test.user", is_readonly=True),
-     "Field 'email' must have unique values. Provided value 'test.user@test.user' already exists.")
+     ResponseMessage(title="Field 'email' uniqueness.",
+                     description="Field 'email' must have unique values. Provided value 'test.user@test.user' already exists.",
+                     code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_change_awfapi_user_data_should_return_400_response(client, monkeypatch,
                                                             existing_awfapi_user: AWFAPIUserInput,
                                                             awfapi_registered_user: AWFAPIRegisteredUser,
                                                             awfapi_user_username: str,
                                                             awfapi_changed_user_data: AWFAPIChangedUserData,
-                                                            expected_message: str) -> None:
+                                                            expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -114,9 +121,10 @@ def test_change_awfapi_user_data_should_return_400_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 400
-        response_dict = response.json()
-        assert response_dict['detail']['detail'] == expected_message
+        message = ResponseMessage(**response.json()['detail'])
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -125,19 +133,23 @@ def test_change_awfapi_user_data_should_return_400_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data", [
+@pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data, expected_message", [
     (AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
      "testuser2",
-     AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False))
+     AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False),
+     ResponseMessage(title="JWT token not provided or wrong encoded.",
+                     description="User did not provide or the JWT token is wrongly encoded.",
+                     code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_change_awfapi_user_data_should_return_401_response(client, monkeypatch,
                                                             existing_awfapi_user: AWFAPIUserInput,
                                                             awfapi_registered_user: AWFAPIRegisteredUser,
                                                             awfapi_user_username: str,
-                                                            awfapi_changed_user_data: AWFAPIChangedUserData) -> None:
+                                                            awfapi_changed_user_data: AWFAPIChangedUserData,
+                                                            expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -152,9 +164,10 @@ def test_change_awfapi_user_data_should_return_401_response(client, monkeypatch,
         response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}", data=awfapi_changed_user_data.json())
 
         # Assert
-        assert response.status_code == 401
-        response_dict = response.json()
-        assert response_dict['detail'] == "Not authenticated"
+        message = ResponseMessage(**response.json())
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -163,19 +176,23 @@ def test_change_awfapi_user_data_should_return_401_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data", [
+@pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data, expected_message", [
     (AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
      "testuser22",
-     AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False))
+     AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False),
+     ResponseMessage(title="User not found.",
+                     description="User of given id 'testuser22' was not found.",
+                     code=status.HTTP_404_NOT_FOUND))
 ])
 def test_change_awfapi_user_data_should_return_404_response(client, monkeypatch,
                                                             existing_awfapi_user: AWFAPIUserInput,
                                                             awfapi_registered_user: AWFAPIRegisteredUser,
                                                             awfapi_user_username: str,
-                                                            awfapi_changed_user_data: AWFAPIChangedUserData) -> None:
+                                                            awfapi_changed_user_data: AWFAPIChangedUserData,
+                                                            expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
@@ -194,9 +211,10 @@ def test_change_awfapi_user_data_should_return_404_response(client, monkeypatch,
         })
 
         # Assert
-        assert response.status_code == 404
-        response_dict = response.json()
-        assert response_dict['detail']['detail'] == "User of given id testuser22 was not found."
+        message = ResponseMessage(**response.json()['detail'])
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)

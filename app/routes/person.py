@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import Optional, List
 
 from app import errors
-from app.models import AWFAPIUser, PersonInput, Person, Message, get_response_models
+from app.models import AWFAPIUser, PersonInput, Person, ResponseMessage, get_response_models
 from app.providers import PersonProvider
 from app.services import PersonService
 
@@ -69,12 +69,14 @@ def update_person(person_id: int,
 
 
 @router.delete("/delete_person/{person_id}", tags=["Persons"],
-               responses=get_response_models(Message, [200, 400, 401, 404, 500]))
+               responses=get_response_models(ResponseMessage, [200, 400, 401, 404, 500]))
 def delete_person(person_id: int,
-                  _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Message:
+                  _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> ResponseMessage:
     try:
         person_provider.delete_person(person_id)
-        return Message(info="Person deleted", message=f"Person of given id {person_id} deleted.")
+        return ResponseMessage(title="Person deleted.",
+                               description=f"Person of given id {person_id} deleted.",
+                               code=status.HTTP_200_OK)
     except errors.NotFoundError as e:
         raise_404(e, "Person", person_id)
     except Exception as e:
