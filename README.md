@@ -1,3 +1,4 @@
+![AW2017MA app logo](app/assets/aw2017ma_api_logo_blue.png)
 # AdventureWorks2017 Management API
 
 The AW2017 Management FastAPI is a solution for the maintenance of AdventureWorks2017 datawarehouse. It enables performing four basic CRUD operations on the datawarehouse entities. This project was developed with [FastAPI](https://fastapi.tiangolo.com/) using [Python 3.9.12](https://www.python.org/downloads/release/python-3912/).
