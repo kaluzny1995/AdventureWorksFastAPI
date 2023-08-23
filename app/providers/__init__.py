@@ -1,8 +1,13 @@
+from app.providers.i_awfapi_user_provider import IAWFAPIUserProvider
 from app.providers.awfapi_user_provider import AWFAPIUserProvider
 from app.providers.table_metadata_provider import TableMetadataProvider
 
+from app.providers.i_business_entity_provider import IBusinessEntityProvider
 from app.providers.business_entity_provider import BusinessEntityProvider
+from app.providers.i_person_provider import IPersonProvider
 from app.providers.person_provider import PersonProvider
 
+from app.providers.i_phone_number_type_provider import IPhoneNumberTypeProvider
 from app.providers.phone_number_type_provider import PhoneNumberTypeProvider
+from app.providers.i_person_phone_provider import IPersonPhoneProvider
 from app.providers.person_phone_provider import PersonPhoneProvider

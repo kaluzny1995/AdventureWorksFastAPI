@@ -19,6 +19,6 @@ class PostgresdbConnectionConfig(BaseModel):
         return config
 
     @staticmethod
-    def get_db_connection_string() -> str:
+    def get_db_connection_string(test_suffix: str = "") -> str:
         pcc = PostgresdbConnectionConfig.from_json()
-        return f"postgresql+psycopg2://{pcc.username}:{pcc.password}@{pcc.host}:{pcc.port}/{pcc.database}"
+        return f"postgresql+psycopg2://{pcc.username}:{pcc.password}@{pcc.host}:{pcc.port}/{pcc.database}{test_suffix}"

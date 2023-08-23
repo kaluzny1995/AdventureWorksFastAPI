@@ -17,7 +17,8 @@
     "password": "mongo_admin",
     "host": "localhost",
     "port": 27017,
-    "database": "awfapi"
+    "database": "awfapi",
+    "collection": "users"
   },
   "jwt_auth_config": {
     "secret_key": "akilkutuklika",

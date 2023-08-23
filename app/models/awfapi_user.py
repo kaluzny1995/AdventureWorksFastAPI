@@ -96,6 +96,45 @@ class AWFAPIViewedUser(BaseModel):
         }
 
 
+class AWFAPIRegisteredUser(BaseModel):
+    username: str
+    password: str
+    repeated_password: str
+    full_name: str
+    email: str
+    is_readonly: bool
+
+    class Config:
+        schema_extra = {
+            "examples": {
+                "first": {
+                    "summary": "First example",
+                    "description": "First AWFAPI registered user example",
+                    "value": {
+                        "username": "dzhawaria",
+                        "password": "awaria95",
+                        "repeated_password": "awaria95",
+                        "full_name": "Dzhejkob Awaria",
+                        "email": "dzh.awaria@gmail.com",
+                        "is_readonly": False
+                    }
+                },
+                "second": {
+                    "summary": "Second example",
+                    "description": "Second AWFAPI registered user example",
+                    "value": {
+                        "username": "testuser",
+                        "password": "testpassword",
+                        "repeated_password": "testpassword",
+                        "full_name": "Test AWFAPIUserInput",
+                        "email": "test.user@test.user",
+                        "is_readonly": True
+                    }
+                }
+            }
+        }
+
+
 class AWFAPIChangedUserData(BaseModel):
     full_name: str
     email: str
@@ -160,45 +199,6 @@ class AWFAPIChangedUserCredentials(BaseModel):
                     "value": {
                         "new_username": "testuser3",
                         "current_password": "testpassword2"
-                    }
-                }
-            }
-        }
-
-
-class AWFAPIRegisteredUser(BaseModel):
-    username: str
-    password: str
-    repeated_password: str
-    full_name: str
-    email: str
-    is_readonly: bool
-
-    class Config:
-        schema_extra = {
-            "examples": {
-                "first": {
-                    "summary": "First example",
-                    "description": "First AWFAPI registered user example",
-                    "value": {
-                        "username": "dzhawaria",
-                        "password": "awaria95",
-                        "repeated_password": "awaria95",
-                        "full_name": "Dzhejkob Awaria",
-                        "email": "dzh.awaria@gmail.com",
-                        "is_readonly": False
-                    }
-                },
-                "second": {
-                    "summary": "Second example",
-                    "description": "Second AWFAPI registered user example",
-                    "value": {
-                        "username": "testuser",
-                        "password": "testpassword",
-                        "repeated_password": "testpassword",
-                        "full_name": "Test AWFAPIUserInput",
-                        "email": "test.user@test.user",
-                        "is_readonly": True
                     }
                 }
             }
