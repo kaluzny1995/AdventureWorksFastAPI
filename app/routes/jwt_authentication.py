@@ -72,7 +72,9 @@ async def test(token: str = Depends(oauth2_scheme)) -> ResponseMessage:
 async def jwt_auth_test(token: str = Depends(oauth2_scheme)) -> ResponseMessage:
     try:
         jwt_auth_service.get_access_token_payload(token)
-        return ResponseMessage(title="JWT Authentication works.", description="JWT Authentication worked successfully.", code=status.HTTP_200_OK)
+        return ResponseMessage(title="JWT Authentication works.",
+                               description="JWT Authentication worked successfully.",
+                               code=status.HTTP_200_OK)
     except (errors.JWTTokenSignatureExpiredError, errors.InvalidCredentialsError) as e:
         raise_401(e)
     except Exception as e:
