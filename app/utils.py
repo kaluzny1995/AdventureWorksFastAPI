@@ -1,7 +1,18 @@
 import re
 from typing import Dict, Tuple
 
+from app import errors
 from app.models import ForeignKeyErrorDetails
+
+
+def get_filter_params(filter_string: str) -> Dict[str, str]:
+    # Example query string: "pt:GC,fnph:Joh,lnph:D"
+    try:
+        filter_params = dict(map(lambda p: p.split(":"), filter_string.split(",")))
+    except ValueError as e:
+        raise errors.InvalidFilterStringError(f"Invalid filter string: {filter_string}.")
+
+    return filter_params
 
 
 def get_username_from_message(error_message: str) -> str:

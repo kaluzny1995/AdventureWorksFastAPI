@@ -1,7 +1,37 @@
+from typing import Dict
 import pytest
 
 from app.models import ForeignKeyErrorDetails
-from app import utils
+from app import errors, utils
+
+
+@pytest.mark.parametrize("filter_string, expected_params", [
+    ("pt:GC,fnph:Joh,lnph:D", dict(pt="GC", fnph="Joh", lnph="D")),
+    ("pt:Joh,lnph:Doe", dict(pt="Joh", lnph="Doe")),
+    ("pt:,lnph:Doe", dict(pt="", lnph="Doe")),
+    ("pt:Joh,lnph:", dict(pt="Joh", lnph="")),
+])
+def test_get_filter_params_should_return_expected_params(filter_string: str, expected_params: Dict[str, str]) -> None:
+    # Arrange
+    # Act
+    params = utils.get_filter_params(filter_string)
+
+    # Assert
+    assert params == expected_params
+
+
+@pytest.mark.parametrize("filter_string, expected_error", [
+    ("pt:Joh,lnph:Doe,", errors.InvalidFilterStringError),
+    (",pt:Joh,lnph:Doe", errors.InvalidFilterStringError),
+    ("pt:Joh,lnph:Doe:", errors.InvalidFilterStringError),
+    (":pt:Joh,lnph:Doe", errors.InvalidFilterStringError)
+])
+def test_get_filter_params_should_raise_expected_error(filter_string: str, expected_error: Exception) -> None:
+    # Arrange
+    with pytest.raises(expected_error):
+        # Act
+        # Assert
+        utils.get_filter_params(filter_string)
 
 
 @pytest.mark.parametrize("error_message, expected_username", [

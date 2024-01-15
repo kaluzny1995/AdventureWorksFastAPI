@@ -24,7 +24,7 @@ class EmailAlreadyExistsError(Exception):
 
 
 class NotFoundError(Exception):
-    """ Raised when the requested document does not exist """
+    """ Raised when the requested document/object does not exist """
     pass
 
 
@@ -33,6 +33,21 @@ class IntegrityError(Exception):
     pass
 
 
+class InvalidSQLValueError(Exception):
+    """ Raised when a value for certain SQL clause is invalid """
+    pass
+
+
 class EmptyFieldsError(Exception):
     """ Raised when all or certain group of fields are empty """
+    pass
+
+
+class InvalidFilterStringError(Exception):
+    """ Raised when the filter string has invalid syntax """
+    pass
+
+
+class FilterNotFoundError(Exception):
+    """ Raised when a certain document/object filter does not exist """
     pass

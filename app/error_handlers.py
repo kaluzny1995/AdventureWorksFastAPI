@@ -12,9 +12,12 @@ from app.models import EAuthenticationStatus, ResponseMessage
 def raise_400(e: Exception):
     """ Raises 400 when the request contains bad information:
     * non-unique value of the certain field was provided
+    * a certain value is invalid for certain SQL clause (ex. LIMIT -1 or SKIP -1)
     * current user has readonly restricted access
     * user typed wrong current password while changing credentials
     * entity insertion/update violated the certain db constraints
+    * object filter string is invalid or contains non-existing filtering fields
+    * related fields have empty values (ex. at least one of them must be provided)
     """
     e_message = str(e)
 
@@ -25,7 +28,14 @@ def raise_400(e: Exception):
                                                    description=f"Field '{unique_field}' must have unique values. "
                                                                f"Provided value '{value}' already exists.",
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": e_message})
+
+    elif "is invalid for" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Invalid value for SQL clause.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
 
     elif "readonly" in e_message:
         username = utils.get_username_from_message(e_message)
@@ -33,14 +43,14 @@ def raise_400(e: Exception):
                             detail=ResponseMessage(title=f"Readonly access for '{username}'.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": e_message})
 
     elif "current password" in e_message:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title=f"Wrong current password.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": e_message})
 
     elif "ForeignKeyViolation" in e_message:
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
@@ -52,6 +62,27 @@ def raise_400(e: Exception):
                                                                f"({foreign_key_details.key_value})'.",
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": foreign_key_details.line})
+
+    elif "Invalid filter string" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Invalid filter string.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
+    elif "Filter string contains fields" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Non-existing fields in filter string.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
+    elif "must be provided" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Missing values.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
 
     else:
         raise e

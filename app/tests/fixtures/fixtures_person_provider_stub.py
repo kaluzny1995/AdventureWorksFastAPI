@@ -10,9 +10,14 @@ class PersonProviderStub(IPersonProvider):
         super(PersonProviderStub, self).__init__()
         self.data = data
 
-    def get_persons(self, limit: Optional[int] = None, offset: Optional[int] = None):
-        """ Returns list of all persons """
+    def get_persons(self, filters: Optional[str] = None,
+                    limit: Optional[int] = None, offset: Optional[int] = None):
+        """ Returns list of appropriate persons """
         return self.data
+
+    def count_persons(self, filters: Optional[str] = None) -> int:
+        """ Returns count of appropriate persons """
+        return len(self.data)
 
     def get_person(self, person_id: int):
         """ Returns person of given person_id """

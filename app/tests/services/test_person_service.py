@@ -1,7 +1,7 @@
 import pytest
 import uuid
 import datetime as dt
-from typing import Optional, List
+from typing import Optional, List, Type
 
 from app.models import Person, EPersonType
 from app.services import PersonService
@@ -32,7 +32,6 @@ persons: List[Person] = [
     Person(business_entity_id=110, person_type=EPersonType.VC, first_name="Claire", last_name="Smith",
            rowguid=uuid.UUID("8ee9e7b7-89df-46a4-9c29-7c56270bd847"), modified_date=dt.datetime(2020, 1, 1, 0, 0, 0)),
 ]
-person_service: PersonService = PersonService(PersonProviderStub(persons))
 
 
 @pytest.mark.parametrize("first_name_phrase, last_name_phrase, expected_persons, expected_error", [
@@ -46,6 +45,8 @@ def test_get_persons_by_phrases_should_return_valid_objects_or_raise_error(first
                                                                            expected_persons: List[Person],
                                                                            expected_error: Exception) -> None:
     # Arrange
+    person_service: PersonService = PersonService(PersonProviderStub(expected_persons))
+
     if expected_error is None:
         # Act
         returned_persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase)
