@@ -38,22 +38,22 @@ def client():
         yield test_client
 
 
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
+
+
 @pytest.mark.parametrize("awfapi_registered_user, access_token, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     None,
+    (awfapi_readonly_user, None,
      ResponseMessage(title="AUTHENTICATED",
                      description="Users authentication status: AUTHENTICATED.",
                      code=status.HTTP_200_OK)),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTY4NjE0MDY2Mn0.sr4CeMbhD12LYzDyAD67AzGReBwgo2jh4zBSLy0_9-I",
+    (awfapi_readonly_user, "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTY4NjE0MDY2Mn0.sr4CeMbhD12LYzDyAD67AzGReBwgo2jh4zBSLy0_9-I",
      ResponseMessage(title="EXPIRED",
                      description="Users authentication status: EXPIRED.",
                      code=status.HTTP_200_OK)),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "fake_access_token",
+    (awfapi_readonly_user, "fake_access_token",
      ResponseMessage(title="UNAUTHENTICATED",
                      description="Users authentication status: UNAUTHENTICATED.",
                      code=status.HTTP_200_OK))

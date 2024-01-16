@@ -39,31 +39,35 @@ def client():
         yield test_client
 
 
+awfapi_user: AWFAPIUserInput = AWFAPIUserInput(username="testuser", full_name="Test User",
+                                               email="test.user@test.user", is_readonly=True,
+                                               hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6")
+awfapi_user2: AWFAPIUserInput = AWFAPIUserInput(username="testuser2", full_name="Test User 2",
+                                                email="test.user2@test.user", is_readonly=True,
+                                                hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6")
+awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                     repeated_password="testpassword",
+                                                                     full_name="Test AWFAPIUserInput",
+                                                                     email="test.user@test.user", is_readonly=False)
+awfapi_nonreadonly_user2: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser2", password="testpassword2",
+                                                                      repeated_password="testpassword2",
+                                                                      full_name="Test User 2",
+                                                                      email="test.user2@test.user", is_readonly=False)
+
+
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_credentials, expected_message", [
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser2", password="testpassword2", repeated_password="testpassword2",
-                          full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
-     "testuser2",
+    (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser22", current_password="testpassword2",
                                   new_password="testpassword22", repeat_new_password="testpassword22"),
      ResponseMessage(title="User credentials changed.",
                      description="Credentials of user 'testuser22' changed.",
                      code=status.HTTP_200_OK)),
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser2", password="testpassword2", repeated_password="testpassword2",
-                          full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
-     "testuser2",
+    (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser22", current_password="testpassword2"),
      ResponseMessage(title="User credentials changed.",
                      description="Credentials of user 'testuser22' changed.",
                      code=status.HTTP_200_OK)),
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser2", password="testpassword2", repeated_password="testpassword2",
-                          full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
-     "testuser2",
+    (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(current_password="testpassword2",
                                   new_password="testpassword22", repeat_new_password="testpassword22"),
      ResponseMessage(title="User credentials changed.",
@@ -108,20 +112,12 @@ def test_change_awfapi_user_credentials_should_return_200_response(client, monke
 
 
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_credentials, expected_message", [
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser2", password="testpassword2", repeated_password="testpassword2",
-                          full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
-     "testuser2",
+    (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser", current_password="testpassword2"),
      ResponseMessage(title="Field 'username' uniqueness.",
                      description="Field 'username' must have unique values. Provided value 'testuser' already exists.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser2", password="testpassword2", repeated_password="testpassword2",
-                          full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
-     "testuser2",
+    (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser22", current_password="testpassword22"),
      ResponseMessage(title="Wrong current password.",
                      description="Wrong current password.",
@@ -165,11 +161,7 @@ def test_change_awfapi_user_credentials_should_return_400_response(client, monke
 
 
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_credentials, expected_message", [
-    (AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     "testuser2",
+    (awfapi_user2, awfapi_nonreadonly_user, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser2", current_password="testpassword2"),
      ResponseMessage(title="JWT token not provided or wrong encoded.",
                      description="User did not provide or the JWT token is wrongly encoded.",
@@ -209,11 +201,7 @@ def test_change_awfapi_user_credentials_should_return_401_response(client, monke
 
 
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_credentials, expected_message", [
-    (AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     "testuser22",
+    (awfapi_user2, awfapi_nonreadonly_user, "testuser22",
      AWFAPIChangedUserCredentials(new_username="testuser22", current_password="testpassword22"),
      ResponseMessage(title="User not found.",
                      description="User of given id 'testuser22' was not found.",

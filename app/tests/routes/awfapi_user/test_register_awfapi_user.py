@@ -39,9 +39,13 @@ def client():
         yield test_client
 
 
+awfapi_user: AWFAPIUserInput = AWFAPIUserInput(username="testuser", full_name="Test User",
+                                               email="test.user@test.user", is_readonly=True,
+                                               hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6")
+
+
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, expected_message", [
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
+    (awfapi_user,
      AWFAPIRegisteredUser(username="testuser2", password="testpassword", repeated_password="testpassword",
                           full_name="Test User 2", email="test.user2@test.user", is_readonly=True),
      ResponseMessage(title="User registered.",
@@ -78,15 +82,13 @@ def test_register_awfapi_user_should_return_201_response(client, monkeypatch,
 
 
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, expected_message", [
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
+    (awfapi_user,
      AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
                           full_name="Test User 2", email="test.user2@test.user", is_readonly=False),
      ResponseMessage(title="Field 'username' uniqueness.",
                      description="Field 'username' must have unique values. Provided value 'testuser' already exists.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (AWFAPIUserInput(username="testuser", full_name="Test User", email="test.user@test.user",
-                     is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
+    (awfapi_user,
      AWFAPIRegisteredUser(username="testuser2", password="testpassword", repeated_password="testpassword",
                           full_name="Test User 2", email="test.user@test.user", is_readonly=False),
      ResponseMessage(title="Field 'email' uniqueness.",

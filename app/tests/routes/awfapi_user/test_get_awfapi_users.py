@@ -48,19 +48,20 @@ awfapi_users_db = [
     AWFAPIUserInput(username="testuser22", full_name="Test User 22", email="test.user22@test.user",
                     is_readonly=True, hashed_password="$2b$12$Mvf8/LwNEue1qQrh.UUAruWnIOaIYgYIAQ3vtEqOYQg7/xlJ.XSB6")
 ]
+awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                     repeated_password="testpassword",
+                                                                     full_name="Test AWFAPIUserInput",
+                                                                     email="test.user@test.user", is_readonly=False)
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
 
 
 @pytest.mark.parametrize("awfapi_registered_user, offset, limit, expected_awfapi_users", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     0, 3,
-     [awfapi_users_db[0], awfapi_users_db[1], awfapi_users_db[2]]),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     1, 1, [awfapi_users_db[1]]),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     0, 3, [awfapi_users_db[0], awfapi_users_db[1], awfapi_users_db[2]])
+    (awfapi_nonreadonly_user, 0, 3, [awfapi_users_db[0], awfapi_users_db[1], awfapi_users_db[2]]),
+    (awfapi_nonreadonly_user, 1, 1, [awfapi_users_db[1]]),
+    (awfapi_readonly_user, 0, 3, [awfapi_users_db[0], awfapi_users_db[1], awfapi_users_db[2]])
 ])
 def test_get_awfapi_users_should_return_200_response(client, monkeypatch,
                                                      awfapi_registered_user: AWFAPIRegisteredUser,
@@ -101,16 +102,13 @@ def test_get_awfapi_users_should_return_200_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, offset, limit, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     0, 3,
+@pytest.mark.parametrize("offset, limit, expected_message", [
+    (0, 3,
      ResponseMessage(title="JWT token not provided or wrong encoded.",
                      description="User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_get_awfapi_users_should_return_401_response(client, monkeypatch,
-                                                     awfapi_registered_user: AWFAPIRegisteredUser,
                                                      offset: int, limit: int,
                                                      expected_message: ResponseMessage) -> None:
     try:
@@ -122,7 +120,6 @@ def test_get_awfapi_users_should_return_401_response(client, monkeypatch,
 
         for audb in awfapi_users_db:
             awfapi_user_provider.insert_awfapi_user(audb)
-        register_test_user(awfapi_user_service, awfapi_registered_user)
 
         # Act
         response = client.get("/all_awfapi_users", params={'offset': offset, 'limit': limit})

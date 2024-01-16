@@ -39,14 +39,24 @@ def client():
         yield test_client
 
 
+awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                     repeated_password="testpassword",
+                                                                     full_name="Test AWFAPIUserInput",
+                                                                     email="test.user@test.user", is_readonly=False)
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
+
+
 @pytest.mark.parametrize("awfapi_registered_user, original_awfapi_user, awfapi_user_username, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
+    (awfapi_nonreadonly_user,
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     "testuser2", ResponseMessage(title="AWFAPI user deleted.",
-                                  description="AWFAPI user of given username 'testuser2' deleted.",
-                                  code=status.HTTP_200_OK))
+     "testuser2",
+     ResponseMessage(title="AWFAPI user deleted.",
+                     description="AWFAPI user of given username 'testuser2' deleted.",
+                     code=status.HTTP_200_OK))
 ])
 def test_delete_awfapi_user_should_return_200_response(client, monkeypatch,
                                                        awfapi_registered_user: AWFAPIRegisteredUser,
@@ -82,8 +92,7 @@ def test_delete_awfapi_user_should_return_200_response(client, monkeypatch,
 
 
 @pytest.mark.parametrize("awfapi_registered_user, awfapi_user, awfapi_user_username, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
+    (awfapi_readonly_user,
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      "testuser2",
@@ -125,10 +134,8 @@ def test_delete_awfapi_user_should_return_400_response(client, monkeypatch,
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, awfapi_user, awfapi_user_username, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
+@pytest.mark.parametrize("awfapi_user, awfapi_user_username, expected_message", [
+    (AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      "testuser2",
      ResponseMessage(title="JWT token not provided or wrong encoded.",
@@ -136,7 +143,6 @@ def test_delete_awfapi_user_should_return_400_response(client, monkeypatch,
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_delete_awfapi_user_should_return_401_response(client, monkeypatch,
-                                                       awfapi_registered_user: AWFAPIRegisteredUser,
                                                        awfapi_user: AWFAPIUserInput,
                                                        awfapi_user_username: str,
                                                        expected_message: ResponseMessage) -> None:
@@ -147,7 +153,6 @@ def test_delete_awfapi_user_should_return_401_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        register_test_user(awfapi_user_service, awfapi_registered_user)
         awfapi_user_provider.insert_awfapi_user(awfapi_user)
 
         # Act
@@ -167,8 +172,7 @@ def test_delete_awfapi_user_should_return_401_response(client, monkeypatch,
 
 
 @pytest.mark.parametrize("awfapi_registered_user, awfapi_user, awfapi_user_username, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
+    (awfapi_nonreadonly_user,
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      "testuser22",
