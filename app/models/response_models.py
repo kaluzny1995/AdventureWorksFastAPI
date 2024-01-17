@@ -10,6 +10,7 @@ def get_response_models(main_model: object, codes: List[int]) -> Dict[int, Dict[
         400: ResponseMessage,
         401: ResponseMessage,
         404: ResponseMessage,
+        422: ResponseMessage,
         500: ResponseMessage
     })
 

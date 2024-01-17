@@ -7,7 +7,7 @@ from app.providers import PersonProvider
 from app.services import PersonService
 
 from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
-from app.error_handlers import raise_400, raise_404, raise_500
+from app.error_handlers import raise_400, raise_404, raise_422, raise_500
 
 
 router = APIRouter()
@@ -60,7 +60,7 @@ def get_person(person_id: int,
 
 
 @router.post("/create_person", tags=["Persons"],
-             responses=get_response_models(Person, [201, 400, 401, 500]), status_code=status.HTTP_201_CREATED)
+             responses=get_response_models(Person, [201, 400, 401, 422, 500]), status_code=status.HTTP_201_CREATED)
 def create_person(
         person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"]),
         _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Person:
@@ -68,12 +68,14 @@ def create_person(
         new_person_id = person_provider.insert_person(person_input)
         new_person = person_provider.get_person(new_person_id)
         return new_person
+    except errors.PydanticValidationError as e:
+        raise_422(e)
     except Exception as e:
         raise_500(e)
 
 
 @router.put("/update_person/{person_id}", tags=["Persons"],
-            responses=get_response_models(Person, [200, 400, 401, 404, 500]))
+            responses=get_response_models(Person, [200, 400, 401, 404, 422, 500]))
 def update_person(person_id: int,
                   person_input: PersonInput = Body(None, examples=PersonInput.Config.schema_extra["examples"]),
                   _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> Person:
@@ -83,6 +85,8 @@ def update_person(person_id: int,
         return updated_person
     except errors.NotFoundError as e:
         raise_404(e, "Person", person_id)
+    except errors.PydanticValidationError as e:
+        raise_422(e)
     except Exception as e:
         raise_500(e)
 

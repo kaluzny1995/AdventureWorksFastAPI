@@ -63,6 +63,7 @@ class PersonProvider(IPersonProvider):
     def insert_person(self, person_input: PersonInput) -> int:
         business_entity_id = self.business_entity_provider.insert_business_entity()
         person = Person(business_entity_id=business_entity_id, **person_input.dict())
+        person.validate_assignment(person_input)
         with Session(self.db_engine) as db_session:
             db_session.add(person)
             db_session.commit()

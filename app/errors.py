@@ -43,6 +43,11 @@ class EmptyFieldsError(Exception):
     pass
 
 
+class PydanticValidationError(Exception):
+    """ Raised when pydantic validation fails during object creation """
+    pass
+
+
 class InvalidFilterStringError(Exception):
     """ Raised when the filter string has invalid syntax """
     pass

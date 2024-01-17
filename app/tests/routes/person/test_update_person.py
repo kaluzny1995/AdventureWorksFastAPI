@@ -293,3 +293,61 @@ def test_update_person_should_return_404_response(client, monkeypatch,
     else:
         drop_collection(mongodb_engine, mongodb_collection_name)
         drop_tables(postgresdb_engine)
+
+
+@pytest.mark.parametrize("awfapi_registered_user, original_person, person_id, person, expected_message", [
+    (awfapi_nonreadonly_user,
+     PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
+     -1,
+     PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria", email_promotion=-1),
+     ResponseMessage(title="Pydantic validation error: 4 validation errors for Person",
+                     description="{'email_promotion': 'ensure this value is greater than or equal to 0'}",
+                     code=status.HTTP_422_UNPROCESSABLE_ENTITY)),
+    (awfapi_nonreadonly_user,
+     PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
+     -1,
+     PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria", email_promotion=3),
+     ResponseMessage(title="Pydantic validation error: 4 validation errors for Person",
+                     description="{'email_promotion': 'ensure this value is less than or equal to 2'}",
+                     code=status.HTTP_422_UNPROCESSABLE_ENTITY))
+])
+def test_update_person_should_return_422_response(client, monkeypatch,
+                                                  awfapi_registered_user: AWFAPIRegisteredUser,
+                                                  original_person: PersonInput,
+                                                  person_id: int,
+                                                  person: PersonInput,
+                                                  expected_message: ResponseMessage) -> None:
+    try:
+        # Arrange
+        create_tables(postgresdb_engine)
+
+        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
+        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_service', awfapi_user_service)
+        monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
+        monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
+
+        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+
+        for pdb in persons_db:
+            person_provider.insert_person(pdb)
+        register_test_user(awfapi_user_service, awfapi_registered_user)
+        access_token = obtain_access_token(client, awfapi_registered_user)
+        person_id = person_provider.insert_person(original_person)
+
+        # Act
+        response = client.put(f"/update_person/{person_id}", data=person.json(),
+                              headers={'Authorization': f"Bearer {access_token}"})
+
+        # Assert
+        message = ResponseMessage(**response.json()['detail'])
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
+
+    except Exception as e:
+        drop_collection(mongodb_engine, mongodb_collection_name)
+        drop_tables(postgresdb_engine)
+        raise e
+    else:
+        drop_collection(mongodb_engine, mongodb_collection_name)
+        drop_tables(postgresdb_engine)

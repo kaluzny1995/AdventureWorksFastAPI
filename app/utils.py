@@ -26,6 +26,26 @@ def get_unique_field_details_from_message(error_message: str) -> Tuple[str, str]
     return field, value[1:-1]
 
 
+def get_validation_error_details_from_message(error_message: str,
+                                              is_required_skipped: bool = False) -> Tuple[str, Dict[str, str]]:
+    # Example:
+    # 1 validation error for Request
+    # body -> first_name
+    #   field required (type=value_error.missing)
+    # email_promotion
+    #   ensure this value is less than or equal to 2 (type=value_error.number.not_le; limit_value=2)
+
+    lines = error_message.split("\n")
+    error_details = list(map(lambda i: (lines[1:][i*2], lines[1:][i*2+1]), range(len(lines[1:])//2)))
+    error_dict = dict(map(lambda ed: (ed[0].strip().replace("body -> ", ""),
+                                      re.sub(r" [(\[].*?[)\]]", "", ed[1].strip())),
+                          error_details))
+    if is_required_skipped:
+        error_dict = dict(filter(lambda ed: "field required" not in ed[1], error_dict.items()))
+
+    return lines[0], error_dict
+
+
 def get_foreign_key_violence_details(error_message: str) -> ForeignKeyErrorDetails:
     # Example error message: "DETAIL:  Key (PhoneNumberTypeID)=(10) is not present in table "PhoneNumberType"."
     line_of_interest = error_message.split("\n")[1]
