@@ -77,7 +77,7 @@ def test_search_by_phrases_should_return_200_response(client, monkeypatch,
         response = client.get("/search_by_phrases",
                               params={'first_name_phrase': first_name_phrase,
                                       'last_name_phrase': last_name_phrase,
-                                      'is_sorted': False})
+                                      'is_ordered': False})
 
         # Assert
         assert response.status_code == status.HTTP_200_OK

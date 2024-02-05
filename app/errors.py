@@ -56,3 +56,8 @@ class InvalidFilterStringError(Exception):
 class FilterNotFoundError(Exception):
     """ Raised when a certain document/object filter does not exist """
     pass
+
+
+class ColumnNotFoundError(Exception):
+    """ Raised when a column of certain view does not exist """
+    pass

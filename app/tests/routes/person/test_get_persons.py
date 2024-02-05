@@ -7,7 +7,7 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, Person
+from app.models import ResponseMessage, AWFAPIRegisteredUser, EOrderType, EPersonType, PersonInput, Person
 from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -78,17 +78,23 @@ persons_db: List[PersonInput] = [
 ]
 
 
-@pytest.mark.parametrize("awfapi_registered_user, filters, offset, limit, expected_persons", [
-    (awfapi_nonreadonly_user, None, 0, 3, [persons_db[0], persons_db[1], persons_db[2]]),
-    (awfapi_nonreadonly_user, None, 1, 1, [persons_db[1]]),
-    (awfapi_readonly_user, None, 0, 3, [persons_db[0], persons_db[1], persons_db[2]]),
-    (awfapi_nonreadonly_user, "person_type:GC", 0, 10, [persons_db[0], persons_db[5]]),
-    (awfapi_nonreadonly_user, "person_type:SC,last_name_phrase:smi", 0, 10, [persons_db[6], persons_db[8], persons_db[9]]),
-    (awfapi_nonreadonly_user, "person_type:SC,first_name_phrase:ron,last_name_phrase:smi", 0, 10, [persons_db[6], persons_db[8]]),
+@pytest.mark.parametrize("awfapi_registered_user, filters, order_by, order_type, offset, limit, expected_persons", [
+    (awfapi_nonreadonly_user, None, None, "asc", 0, 3, [persons_db[0], persons_db[1], persons_db[2]]),
+    (awfapi_nonreadonly_user, None, None, "asc", 1, 1, [persons_db[1]]),
+    (awfapi_readonly_user, None, None, "asc", 0, 3, [persons_db[0], persons_db[1], persons_db[2]]),
+    (awfapi_nonreadonly_user, "person_type:GC", None, "asc", 0, 10, [persons_db[0], persons_db[5]]),
+    (awfapi_nonreadonly_user, "person_type:SC,last_name_phrase:smi", None, "asc", 0, 10, [persons_db[6], persons_db[8], persons_db[9]]),
+    (awfapi_nonreadonly_user, "person_type:SC,first_name_phrase:ron,last_name_phrase:smi", None, "asc", 0, 10, [persons_db[6], persons_db[8]]),
+    (awfapi_nonreadonly_user, "first_name_phrase:john", "full_name", "asc", 0, 10, [persons_db[4], persons_db[3], persons_db[2], persons_db[0], persons_db[1]]),
+    (awfapi_nonreadonly_user, "first_name_phrase:john", "full_name", "asc", 0, 3, [persons_db[4], persons_db[3], persons_db[2]]),
+    (awfapi_nonreadonly_user, "first_name_phrase:john", "full_name", "asc", 2, 3, [persons_db[2], persons_db[0], persons_db[1]]),
+    (awfapi_nonreadonly_user, "first_name_phrase:john", "person_type", "desc", 0, 10, [persons_db[3], persons_db[4], persons_db[2], persons_db[0], persons_db[1]]),
 ])
 def test_get_persons_should_return_200_response(client, monkeypatch,
                                                 awfapi_registered_user: AWFAPIRegisteredUser,
-                                                filters: Optional[str], offset: int, limit: int,
+                                                filters: Optional[str],
+                                                order_by: Optional[str], order_type: Optional[EOrderType],
+                                                offset: int, limit: int,
                                                 expected_persons: List[PersonInput]) -> None:
     try:
         # Arrange
@@ -107,7 +113,10 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.get("/get_persons", params={'filters': filters, 'offset': offset, 'limit': limit},
+        response = client.get("/get_persons",
+                              params={'filters': filters,
+                                      'order_by': order_by, 'order_type': order_type,
+                                      'offset': offset, 'limit': limit},
                               headers={'Authorization': f"Bearer {access_token}"})
 
         # Assert
@@ -116,6 +125,7 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
         persons = list(map(lambda rd: Person(**rd), response_dict))
         assert len(persons) == len(expected_persons)
         for p, ep in zip(persons, expected_persons):
+            print("Persons:", p.dict(), ep.dict())
             assert p.business_entity_id is not None
             assert p.person_type == ep.person_type
             assert p.name_style == ep.name_style
@@ -139,45 +149,51 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
         drop_tables(postgresdb_engine)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, filters, offset, limit, expected_message", [
-    (awfapi_readonly_user, None, -1, 0,
+@pytest.mark.parametrize("awfapi_registered_user, filters, order_by, order_type, offset, limit, expected_message", [
+    (awfapi_readonly_user, None, None, "asc", -1, 0,
      ResponseMessage(title="Invalid value for SQL clause.",
                      description="Value '-1' is invalid for SKIP clause.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, None, 0, -1,
+    (awfapi_readonly_user, None, None, "asc", 0, -1,
      ResponseMessage(title="Invalid value for SQL clause.",
                      description="Value '-1' is invalid for LIMIT clause.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "last_name:pph", 0, 0,
+    (awfapi_readonly_user, "last_name:pph", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
                      description="Filter string contains fields: '['last_name']' some of which "
                                  "do not exist in person filtering fields: "
                                  "['person_type', 'first_name_phrase', 'last_name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "last_name_phrase:pph,first_name:ffh", 0, 0,
+    (awfapi_readonly_user, "last_name_phrase:pph,first_name:ffh", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
                      description="Filter string contains fields: '['last_name_phrase', 'first_name']' some of which "
                                  "do not exist in person filtering fields: "
                                  "['person_type', 'first_name_phrase', 'last_name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "pers_type:GC", 0, 0,
+    (awfapi_readonly_user, "pers_type:GC", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
                      description="Filter string contains fields: '['pers_type']' some of which "
                                  "do not exist in person filtering fields: "
                                  "['person_type', 'first_name_phrase', 'last_name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "person_type", 0, 0,
+    (awfapi_readonly_user, "person_type", None, "asc", 0, 0,
      ResponseMessage(title="Invalid filter string.",
                      description="Invalid filter string: person_type.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "person_type:SC,last_name_phrase", 0, 0,
+    (awfapi_readonly_user, "person_type:SC,last_name_phrase", None, "asc", 0, 0,
      ResponseMessage(title="Invalid filter string.",
                      description="Invalid filter string: person_type:SC,last_name_phrase.",
-                     code=status.HTTP_400_BAD_REQUEST))
+                     code=status.HTTP_400_BAD_REQUEST)),
+    (awfapi_readonly_user, None, "name", "asc", 0, 0,
+     ResponseMessage(title="Non-existing column for ordering.",
+                     description="Column does not exist in persons view ('name').",
+                     code=status.HTTP_400_BAD_REQUEST)),
 ])
 def test_get_persons_should_return_400_response(client, monkeypatch,
                                                 awfapi_registered_user: AWFAPIRegisteredUser,
-                                                filters: Optional[str], offset: int, limit: int,
+                                                filters: Optional[str],
+                                                order_by: Optional[str], order_type: Optional[EOrderType],
+                                                offset: int, limit: int,
                                                 expected_message: ResponseMessage) -> None:
     try:
         # Arrange
@@ -196,7 +212,10 @@ def test_get_persons_should_return_400_response(client, monkeypatch,
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.get("/get_persons", params={'filters': filters, 'offset': offset, 'limit': limit},
+        response = client.get("/get_persons",
+                              params={'filters': filters,
+                                      'order_by': order_by, 'order_type': order_type,
+                                      'offset': offset, 'limit': limit},
                               headers={'Authorization': f"Bearer {access_token}"})
 
         # Assert
@@ -214,14 +233,16 @@ def test_get_persons_should_return_400_response(client, monkeypatch,
         drop_tables(postgresdb_engine)
 
 
-@pytest.mark.parametrize("filters, offset, limit, expected_message", [
-    (None, 0, 3,
+@pytest.mark.parametrize("filters, order_by, order_type, offset, limit, expected_message", [
+    (None, None, "asc", 0, 3,
      ResponseMessage(title="JWT token not provided or wrong encoded.",
                      description="User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_get_persons_should_return_401_response(client, monkeypatch,
-                                                filters: Optional[str], offset: int, limit: int,
+                                                filters: Optional[str],
+                                                order_by: Optional[str], order_type: Optional[EOrderType],
+                                                offset: int, limit: int,
                                                 expected_message: ResponseMessage) -> None:
     try:
         # Arrange
@@ -238,7 +259,10 @@ def test_get_persons_should_return_401_response(client, monkeypatch,
             person_provider.insert_person(pdb)
 
         # Act
-        response = client.get("/get_persons", params={'filters': filters, 'offset': offset, 'limit': limit})
+        response = client.get("/get_persons",
+                              params={'filters': filters,
+                                      'order_by': order_by, 'order_type': order_type,
+                                      'offset': offset, 'limit': limit})
 
         # Assert
         message = ResponseMessage(**response.json())

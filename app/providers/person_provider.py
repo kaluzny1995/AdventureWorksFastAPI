@@ -1,14 +1,14 @@
 import datetime as dt
 import sqlalchemy
-from pydantic import BaseModel
-from sqlmodel import create_engine, Session, select, column
+from pydantic import BaseModel, Field
+from sqlmodel import create_engine, Session, select
 from sqlmodel.sql.expression import SelectOfScalar
-from typing import Optional, List, Union
+from typing import Optional, List, Dict, Union, ClassVar
 
 from app import utils, errors
 from app.config import PostgresdbConnectionConfig
 from app.providers import IPersonProvider, BusinessEntityProvider
-from app.models import Person, PersonInput
+from app.models import EOrderType, Person, PersonInput
 
 
 class PersonProvider(IPersonProvider):
@@ -25,12 +25,16 @@ class PersonProvider(IPersonProvider):
         self.db_engine = db_engine or create_engine(self.connection_string)
 
     def get_persons(self, filters: Optional[str] = None,
+                    order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
                     limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
         with Session(self.db_engine) as db_session:
             statement = select(Person)
             if filters is not None:
                 person_db_filter = PersonDbFilter.from_filter_string(filters)
                 statement = person_db_filter.filter_persons(statement)
+            if order_by is not None:
+                person_db_order = PersonDbOrder(by=order_by, order=order_type)
+                statement = person_db_order.order_persons(statement)
             if offset is not None:
                 if offset < 0:
                     raise errors.InvalidSQLValueError(f"Value '{offset}' is invalid for SKIP clause.")
@@ -116,4 +120,31 @@ class PersonDbFilter(BaseModel):
             )
         if self.last_name_phrase is not None:
             person_statement = person_statement.where(Person.last_name.ilike(f"%{self.last_name_phrase}%"))
+        return person_statement
+
+
+class PersonDbOrder(BaseModel):
+    by: str
+    order: EOrderType
+
+    column_mapping: ClassVar[Dict[str, List[object]]] = dict({
+        "person_id": [Person.business_entity_id],
+        "person_type": [Person.person_type],
+        "name_style": [Person.name_style],
+        "full_name": [Person.last_name, Person.first_name, Person.middle_name, Person.suffix, Person.title],
+        "email_promotion": [Person.email_promotion],
+        "additional_contact_info": [Person.additional_contact_info],
+        "demographics": [Person.demographics],
+        "rowguid": [Person.rowguid],
+        "modified_date": [Person.modified_date]
+    })
+
+    def order_persons(self, person_statement: SelectOfScalar[Person]) -> SelectOfScalar[Person]:
+        if self.by not in self.column_mapping.keys():
+            raise errors.ColumnNotFoundError(f"Column does not exist in persons view ('{self.by}').")
+
+        person_attrs = self.column_mapping[self.by]
+        order_statement = list(map(lambda a: a.asc() if self.order == EOrderType.ASC else a.desc(), person_attrs))
+        person_statement = person_statement.order_by(*order_statement)
+
         return person_statement

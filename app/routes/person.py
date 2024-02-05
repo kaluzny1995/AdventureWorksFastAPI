@@ -2,7 +2,8 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import Optional, List
 
 from app import errors
-from app.models import AWFAPIUser, PersonInput, Person, CountMessage, ResponseMessage, get_response_models
+from app.config import DefaultParamsConfig
+from app.models import EOrderType, AWFAPIUser, PersonInput, Person, CountMessage, ResponseMessage, get_response_models
 from app.providers import PersonProvider
 from app.services import PersonService
 
@@ -12,20 +13,29 @@ from app.error_handlers import raise_400, raise_404, raise_422, raise_500
 
 router = APIRouter()
 
+default_params = DefaultParamsConfig.from_json(entity="person")
 person_provider = PersonProvider()
 person_service = PersonService()
 
 
 @router.get("/get_persons", tags=["Persons"],
             responses=get_response_models(List[Person], [200, 400, 401, 500]))
-def get_persons(filters: Optional[str] = None, offset: int = 0, limit: int = 10,
+def get_persons(filters: Optional[str] = default_params.filters,
+                order_by: Optional[str] = default_params.order_by,
+                order_type: Optional[EOrderType] = default_params.order_type,
+                offset: int = default_params.offset,
+                limit: int = default_params.limit,
                 _: AWFAPIUser = Depends(get_current_user)) -> List[Person]:
     if filters == "":
         filters = None
+    if order_by == "":
+        order_by = None
+
     try:
-        persons = person_provider.get_persons(filters, limit, offset)
+        persons = person_provider.get_persons(filters, order_by, order_type, limit, offset)
         return persons
-    except (errors.InvalidFilterStringError, errors.FilterNotFoundError, errors.InvalidSQLValueError) as e:
+    except (errors.InvalidFilterStringError, errors.FilterNotFoundError,
+            errors.ColumnNotFoundError, errors.InvalidSQLValueError) as e:
         raise_400(e)
     except Exception as e:
         raise_500(e)
@@ -33,7 +43,7 @@ def get_persons(filters: Optional[str] = None, offset: int = 0, limit: int = 10,
 
 @router.get("/count_persons", tags=["Persons"],
             responses=get_response_models(List[Person], [200, 400, 401, 500]))
-def count_persons(filters: Optional[str] = None,
+def count_persons(filters: Optional[str] = default_params.filters,
                   _: AWFAPIUser = Depends(get_current_user)) -> CountMessage:
     if filters == "":
         filters = None
@@ -110,13 +120,13 @@ def delete_person(person_id: int,
             responses=get_response_models(List[Person], [200, 400, 404, 500]))
 def search_by_phrases(first_name_phrase: Optional[str] = None,
                       last_name_phrase: Optional[str] = None,
-                      is_sorted: Optional[bool] = True) -> List[Person]:
+                      is_ordered: Optional[bool] = True) -> List[Person]:
     if first_name_phrase == "":
         first_name_phrase = None
     if last_name_phrase == "":
         last_name_phrase = None
     try:
-        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase, is_sorted)
+        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase, is_ordered)
         return persons
     except errors.EmptyFieldsError as e:
         raise_400(e)

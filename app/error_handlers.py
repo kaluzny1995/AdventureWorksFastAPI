@@ -84,6 +84,13 @@ def raise_400(e: Exception):
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
+    elif "Column does not exist" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Non-existing column for ordering.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
     else:
         raise e
 
