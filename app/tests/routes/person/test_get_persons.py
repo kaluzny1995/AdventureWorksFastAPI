@@ -188,6 +188,16 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
      ResponseMessage(title="Non-existing column for ordering.",
                      description="Column does not exist in persons view ('name').",
                      code=status.HTTP_400_BAD_REQUEST)),
+    (awfapi_readonly_user, None, "additional_contact_info", "asc", 0, 0,
+     ResponseMessage(title="Unsupported ordering for this data type.",
+                     description="Cannot order by column 'additional_contact_info'. "
+                                 "PostgreSQL does not support ordering for 'xml' data type.",
+                     code=status.HTTP_400_BAD_REQUEST)),
+    (awfapi_readonly_user, None, "demographics", "asc", 0, 0,
+     ResponseMessage(title="Unsupported ordering for this data type.",
+                     description="Cannot order by column 'demographics'. "
+                                 "PostgreSQL does not support ordering for 'xml' data type.",
+                     code=status.HTTP_400_BAD_REQUEST)),
 ])
 def test_get_persons_should_return_400_response(client, monkeypatch,
                                                 awfapi_registered_user: AWFAPIRegisteredUser,

@@ -91,8 +91,15 @@ def raise_400(e: Exception):
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
+    elif "Cannot order by column" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Unsupported ordering for this data type.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
     else:
-        raise e
+        raise_500(e)
 
 
 def raise_401(e: Exception):

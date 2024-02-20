@@ -128,19 +128,22 @@ class PersonDbOrder(BaseModel):
     order: EOrderType
 
     column_mapping: ClassVar[Dict[str, List[object]]] = dict({
-        "person_id": [Person.business_entity_id],
-        "person_type": [Person.person_type],
-        "name_style": [Person.name_style],
-        "full_name": [Person.last_name, Person.first_name, Person.middle_name, Person.suffix, Person.title],
-        "email_promotion": [Person.email_promotion],
-        "additional_contact_info": [Person.additional_contact_info],
-        "demographics": [Person.demographics],
-        "rowguid": [Person.rowguid],
-        "modified_date": [Person.modified_date]
+        'person_id': [Person.business_entity_id],
+        'person_type': [Person.person_type],
+        'name_style': [Person.name_style],
+        'full_name': [Person.last_name, Person.first_name, Person.middle_name, Person.suffix, Person.title],
+        'email_promotion': [Person.email_promotion],
+        # 'additional_contact_info' cannot be ordered as there is no ordering operator for xml data type
+        # 'demographics' cannot be ordered as there is no ordering operator for xml data type
+        'rowguid': [Person.rowguid],
+        'modified_date': [Person.modified_date]
     })
 
     def order_persons(self, person_statement: SelectOfScalar[Person]) -> SelectOfScalar[Person]:
-        if self.by not in self.column_mapping.keys():
+        if self.by in ["additional_contact_info", "demographics"]:
+            raise errors.ColumnNotFoundError(f"Cannot order by column '{self.by}'. "
+                                             f"PostgreSQL does not support ordering for 'xml' data type.")
+        elif self.by not in self.column_mapping.keys():
             raise errors.ColumnNotFoundError(f"Column does not exist in persons view ('{self.by}').")
 
         person_attrs = self.column_mapping[self.by]
