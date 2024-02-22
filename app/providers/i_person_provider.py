@@ -1,13 +1,19 @@
 from typing import Optional, List
 
-from app.models import PersonInput, Person
+from app.models import EOrderType, PersonInput, Person
 
 
 class IPersonProvider:
     """ Interface of person provider """
 
-    def get_persons(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
-        """ Returns list of all persons """
+    def get_persons(self, filters: Optional[str] = None,
+                    order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
+                    limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
+        """ Returns list of appropriate persons """
+        raise NotImplementedError
+
+    def count_persons(self, filters: Optional[str] = None) -> int:
+        """ Returns count of appropriate persons """
         raise NotImplementedError
 
     def get_person(self, person_id: int) -> Person:

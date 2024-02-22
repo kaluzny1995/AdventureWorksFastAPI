@@ -1,5 +1,5 @@
 import traceback
-from fastapi import Request, HTTPException, status
+from fastapi import Request, Response, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, StarletteHTTPException
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
@@ -12,9 +12,12 @@ from app.models import EAuthenticationStatus, ResponseMessage
 def raise_400(e: Exception):
     """ Raises 400 when the request contains bad information:
     * non-unique value of the certain field was provided
+    * a certain value is invalid for certain SQL clause (ex. LIMIT -1 or SKIP -1)
     * current user has readonly restricted access
     * user typed wrong current password while changing credentials
     * entity insertion/update violated the certain db constraints
+    * object filter string is invalid or contains non-existing filtering fields
+    * related fields have empty values (ex. at least one of them must be provided)
     """
     e_message = str(e)
 
@@ -25,7 +28,14 @@ def raise_400(e: Exception):
                                                    description=f"Field '{unique_field}' must have unique values. "
                                                                f"Provided value '{value}' already exists.",
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": e_message})
+
+    elif "is invalid for" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Invalid value for SQL clause.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
 
     elif "readonly" in e_message:
         username = utils.get_username_from_message(e_message)
@@ -33,14 +43,14 @@ def raise_400(e: Exception):
                             detail=ResponseMessage(title=f"Readonly access for '{username}'.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": e_message})
 
     elif "current password" in e_message:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title=f"Wrong current password.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": e_message})
 
     elif "ForeignKeyViolation" in e_message:
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
@@ -53,8 +63,43 @@ def raise_400(e: Exception):
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": foreign_key_details.line})
 
+    elif "Invalid filter string" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Invalid filter string.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
+    elif "Filter string contains fields" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Non-existing fields in filter string.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
+    elif "must be provided" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Missing values.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
+    elif "Column does not exist" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Non-existing column for ordering.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
+    elif "Cannot order by column" in e_message:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Unsupported ordering for this data type.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": e_message})
+
     else:
-        raise e
+        raise_500(e)
 
 
 def raise_401(e: Exception):
@@ -84,6 +129,16 @@ def raise_404(e: Exception, entity: str, entity_id: object, info: Optional[str] 
                             headers={"description": str(e)})
 
 
+def raise_422(e: Exception):
+    """ Raises 422 when validation error occur during pydantic object creation """
+    title, details = utils.get_validation_error_details_from_message(str(e), is_required_skipped=True)
+    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=ResponseMessage(title=f"Pydantic validation error: {title}",
+                                               description=str(details),
+                                               code=status.HTTP_422_UNPROCESSABLE_ENTITY).dict(),
+                        headers={"description": str(dict(title=title, details=details))})
+
+
 def raise_500(e: Exception):
     """ Raises 500 when other unknown error occurred """
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -93,8 +148,8 @@ def raise_500(e: Exception):
                         headers={"description": str(e)})
 
 
-async def custom_http_error_handler(request: Request, exc: StarletteHTTPException):
-
+async def custom_http_error_handler(request: Request, exc: StarletteHTTPException) -> Response:
+    """ Handles each HTTP exception """
     if request.url.path == "/test" and exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # executed only for "/test" url endpoint, which checks the authentication status
         # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" description
@@ -121,12 +176,14 @@ async def custom_http_error_handler(request: Request, exc: StarletteHTTPExceptio
         print("The user is not authorized, authentication failed or access token has expired.")
     elif exc.status_code == status.HTTP_404_NOT_FOUND:
         print("The requested object was not found.")
+    elif exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+        print("The validation of an object failed.")
     else:
         print(traceback.format_exc())
     return await http_exception_handler(request, exc)
 
 
-async def custom_request_validation_error_handler(request: Request, exc: RequestValidationError):
-    print(f"Validation error occurred. {str(exc)}")
-    print(traceback.format_exc())
+async def custom_request_validation_error_handler(request: Request, exc: RequestValidationError) -> Response:
+    """ Handles each validation error occurring during request sending"""
+    print(f"Request validation error occurred.\n{str(exc)}")
     return await request_validation_exception_handler(request, exc)

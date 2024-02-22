@@ -1,6 +1,19 @@
 from pydantic import BaseModel
 
 
+class CountMessage(BaseModel):
+    entity: str
+    count: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "entity": "Person",
+                "count": 10
+            }
+        }
+
+
 class ResponseMessage(BaseModel):
     title: str
     description: str

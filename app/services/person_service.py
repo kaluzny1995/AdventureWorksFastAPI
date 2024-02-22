@@ -2,7 +2,7 @@ from typing import Optional, List
 
 from app import errors
 from app.providers import IPersonProvider, PersonProvider
-from app.models import Person
+from app.models import EOrderType, Person
 
 
 class PersonService:
@@ -11,22 +11,25 @@ class PersonService:
     def __init__(self, person_provider: Optional[IPersonProvider] = None):
         self.person_provider = person_provider or PersonProvider()
 
-    def get_persons_by_phrases(self, first_name_phrase: Optional[str], last_name_phrase: Optional[str]) -> List[Person]:
-        if first_name_phrase is None and last_name_phrase is None:
-            raise errors.EmptyFieldsError()
-
-        all_persons = self.person_provider.get_persons()
+    def get_persons_by_phrases(self,
+                               first_name_phrase: Optional[str] = None,
+                               last_name_phrase: Optional[str] = None,
+                               is_ordered: Optional[bool] = True) -> List[Person]:
 
         if first_name_phrase is not None and last_name_phrase is not None:
-            relevant_persons = list(filter(
-                lambda p: first_name_phrase.lower() in p.first_name.lower() and
-                last_name_phrase.lower() in p.last_name.lower(), all_persons))
+            filter_string = f"first_name_phrase:{first_name_phrase},last_name_phrase:{last_name_phrase}"
         elif first_name_phrase is not None:
-            relevant_persons = list(filter(lambda p: first_name_phrase.lower() in p.first_name.lower(), all_persons))
+            filter_string = f"first_name_phrase:{first_name_phrase}"
+        elif last_name_phrase is not None:
+            filter_string = f"last_name_phrase:{last_name_phrase}"
         else:
-            relevant_persons = list(filter(lambda p: last_name_phrase.lower() in p.last_name.lower(), all_persons))
+            raise errors.EmptyFieldsError("Either first or last name phrase must be provided.")
 
-        relevant_persons = list(sorted(relevant_persons,
-                                       key=lambda rp: (rp.last_name, rp.first_name, rp.middle_name or "")))
+        found_persons = self.person_provider.get_persons(filters=filter_string,
+                                                         order_by="full_name" if is_ordered else None,
+                                                         order_type=EOrderType.ASC)
 
-        return relevant_persons
+        if len(found_persons) == 0:
+            raise errors.NotFoundError("Persons of given phrases not found.")
+
+        return found_persons

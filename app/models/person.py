@@ -2,9 +2,10 @@ import uuid
 import datetime as dt
 from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime
-from typing import Optional
+from typing import Any, Optional
 
 from app.models import EPersonType
+from app import errors
 
 
 class PersonInput(BaseModel):
@@ -60,7 +61,7 @@ class Person(SQLModel, table=True):
     middle_name: Optional[str] = Field(sa_column=Column("MiddleName", String, nullable=True))
     last_name: str = Field(sa_column=Column("LastName", String, nullable=False))
     suffix: Optional[str] = Field(sa_column=Column("Suffix", String, nullable=True))
-    email_promotion: int = Field(sa_column=Column("EmailPromotion", Integer, default=0, nullable=False))
+    email_promotion: int = Field(sa_column=Column("EmailPromotion", Integer, default=0, nullable=False), ge=0, le=2)
     additional_contact_info: Optional[str] = Field(sa_column=Column("AdditionalContactInfo", String, nullable=True))
     demographics: Optional[str] = Field(sa_column=Column("Demographics", String, nullable=True))
     rowguid: uuid.UUID = Field(sa_column=Column("rowguid", String, default=uuid.uuid4, nullable=False))
@@ -88,8 +89,8 @@ class Person(SQLModel, table=True):
                 }
         }
 
-    def update_from_input(self, person_input: PersonInput) -> 'Person':
-        """ Updates the model from its input. """
+    def validate_assignment(self, person_input: PersonInput) -> Any:
+        """ Validates the model values assignment """
 
         person_input_dict = person_input.dict()
         values, fields, error = validate_model(self.__class__, person_input_dict)
@@ -98,8 +99,14 @@ class Person(SQLModel, table=True):
         if error is not None:
             wrong_fields = list(map(lambda e: e['loc'][0], error.errors()))
             if not all(map(lambda wf: wf in person_hidden_fields, wrong_fields)):
-                raise error
+                raise errors.PydanticValidationError(str(error))
 
+        return values, fields
+
+    def update_from_input(self, person_input: PersonInput) -> 'Person':
+        """ Updates the model from its input. """
+
+        values, fields = self.validate_assignment(person_input)
         for name in fields:
             value = values[name]
             setattr(self, name, value)

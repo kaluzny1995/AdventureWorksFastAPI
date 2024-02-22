@@ -61,6 +61,36 @@ def test_get_persons_should_return_valid_objects(persons: List[PersonInput]) -> 
     drop_tables(db_engine)
 
 
+@pytest.mark.parametrize("persons, expected_count", [
+    ([PersonInput(person_type=EPersonType.GC, name_style="0",
+                 title="Mr.", first_name="John", middle_name="J.", last_name="Doe", suffix="Jr",
+                 email_promotion=1,
+                 additional_contact_info="<contact_details>?</contact_details>",
+                 demographics="<demographic_details>?</demographic_details>"),
+     PersonInput(person_type=EPersonType.SP, name_style="0",
+                 title="Ms.", first_name="Alice", last_name="Doe", suffix="Jr",
+                 email_promotion=2,
+                 additional_contact_info="<contact_details><num>32/1a</num></contact_details>",
+                 demographics="<demographic_details><country>England</country></demographic_details>"),
+     PersonInput(person_type=EPersonType.IN, first_name="Mark", last_name="Sharon")], 3),
+    ([PersonInput(person_type=EPersonType.EM, first_name="Dzhejkob", last_name="Awaria")], 1)
+])
+def test_count_persons_should_return_expected_number(persons: List[PersonInput], expected_count: int) -> None:
+    create_tables(db_engine)
+
+    # Arrange
+    for person in persons:
+        person_provider.insert_person(person)
+
+    # Act
+    count = person_provider.count_persons()
+
+    # Assert
+    assert count == expected_count
+
+    drop_tables(db_engine)
+
+
 @pytest.mark.parametrize("person", [
     PersonInput(person_type=EPersonType.GC, name_style="0",
                 title="Mr.", first_name="John", middle_name="J.", last_name="Doe", suffix="Jr",

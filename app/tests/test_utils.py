@@ -1,7 +1,37 @@
+from typing import Dict
 import pytest
 
 from app.models import ForeignKeyErrorDetails
-from app import utils
+from app import errors, utils
+
+
+@pytest.mark.parametrize("filter_string, expected_params", [
+    ("pt:GC,fnph:Joh,lnph:D", dict(pt="GC", fnph="Joh", lnph="D")),
+    ("pt:Joh,lnph:Doe", dict(pt="Joh", lnph="Doe")),
+    ("pt:,lnph:Doe", dict(pt="", lnph="Doe")),
+    ("pt:Joh,lnph:", dict(pt="Joh", lnph="")),
+])
+def test_get_filter_params_should_return_expected_params(filter_string: str, expected_params: Dict[str, str]) -> None:
+    # Arrange
+    # Act
+    params = utils.get_filter_params(filter_string)
+
+    # Assert
+    assert params == expected_params
+
+
+@pytest.mark.parametrize("filter_string, expected_error", [
+    ("pt:Joh,lnph:Doe,", errors.InvalidFilterStringError),
+    (",pt:Joh,lnph:Doe", errors.InvalidFilterStringError),
+    ("pt:Joh,lnph:Doe:", errors.InvalidFilterStringError),
+    (":pt:Joh,lnph:Doe", errors.InvalidFilterStringError)
+])
+def test_get_filter_params_should_raise_expected_error(filter_string: str, expected_error: Exception) -> None:
+    # Arrange
+    with pytest.raises(expected_error):
+        # Act
+        # Assert
+        utils.get_filter_params(filter_string)
 
 
 @pytest.mark.parametrize("error_message, expected_username", [
@@ -34,6 +64,50 @@ def test_get_unique_field_name_from_message_should_return_expected_field(error_m
     # Assert
     assert field_name == expected_field_name
     assert field_value == expected_field_value
+
+
+@pytest.mark.parametrize("error_message, is_required_skipped, expected_title, expected_details", [
+    ("""1 validation error for Request
+    body -> first_name
+      field required (type=value_error.missing)""", False,
+     "1 validation error for Request",
+     dict(first_name="field required")),
+    ("""4 validation errors for Person
+    business_entity_id
+      field required (type=value_error.missing)
+    email_promotion
+      ensure this value is less than or equal to 2 (type=value_error.number.not_le; limit_value=2)
+    rowguid
+      field required (type=value_error.missing)
+    modified_date
+      field required (type=value_error.missing)""", False,
+     "4 validation errors for Person",
+     dict(business_entity_id="field required",
+          email_promotion="ensure this value is less than or equal to 2",
+          rowguid="field required",
+          modified_date="field required")),
+    ("""4 validation errors for Person
+    business_entity_id
+      field required (type=value_error.missing)
+    email_promotion
+      ensure this value is less than or equal to 2 (type=value_error.number.not_le; limit_value=2)
+    rowguid
+      field required (type=value_error.missing)
+    modified_date
+      field required (type=value_error.missing)""", True,
+     "4 validation errors for Person",
+     dict(email_promotion="ensure this value is less than or equal to 2"))
+])
+def test_get_validation_error_details_from_message_should_return_expected_details(error_message: str,
+                                                                                  is_required_skipped: bool,
+                                                                                  expected_title: str,
+                                                                                  expected_details: Dict[str, str]) -> None:
+    # Arrange
+    # Act
+    title, details = utils.get_validation_error_details_from_message(error_message, is_required_skipped)
+    # Assert
+    assert title == expected_title
+    assert details == expected_details
 
 
 @pytest.mark.parametrize("error_message, expected_details", [
