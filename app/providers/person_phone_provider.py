@@ -36,7 +36,6 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                 where(and_(PersonPhone.business_entity_id == person_phone_id[0],
                            PersonPhone.phone_number == person_phone_id[1],
                            PersonPhone.phone_number_type_id == person_phone_id[2]))
-            print(statement)
             person_phone = db_session.execute(statement).first()
         if person_phone is None:
             raise errors.NotFoundError(f"Person phone of id '{person_phone_id}' does not exist")

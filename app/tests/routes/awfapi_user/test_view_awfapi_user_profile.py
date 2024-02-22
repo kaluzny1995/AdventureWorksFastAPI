@@ -47,18 +47,20 @@ awfapi_users_db = [
     AWFAPIUserInput(username="testuser22", full_name="Test User 22", email="test.user22@test.user",
                     is_readonly=True, hashed_password="$2b$12$Mvf8/LwNEue1qQrh.UUAruWnIOaIYgYIAQ3vtEqOYQg7/xlJ.XSB6")
 ]
+awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                     repeated_password="testpassword",
+                                                                     full_name="Test AWFAPIUserInput",
+                                                                     email="test.user@test.user", is_readonly=False)
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
 
 
 @pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username, expected_awfapi_viewed_user", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     "dzhawaria", awfapi_users_db[0]),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     "testuser2", awfapi_users_db[1]),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testuser22", awfapi_users_db[2])
+    (awfapi_nonreadonly_user, "dzhawaria", awfapi_users_db[0]),
+    (awfapi_nonreadonly_user, "testuser2", awfapi_users_db[1]),
+    (awfapi_readonly_user, "testuser22", awfapi_users_db[2])
 ])
 def test_view_awfapi_user_profile_should_return_200_response(client, monkeypatch,
                                                              awfapi_registered_user: AWFAPIRegisteredUser,
@@ -96,16 +98,13 @@ def test_view_awfapi_user_profile_should_return_200_response(client, monkeypatch
         drop_collection(mongodb_engine, mongodb_collection_name)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "dzhawaria",
+@pytest.mark.parametrize("awfapi_user_username, expected_message", [
+    ("dzhawaria",
      ResponseMessage(title="JWT token not provided or wrong encoded.",
                      description="User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_view_awfapi_user_profile_should_return_401_response(client, monkeypatch,
-                                                             awfapi_registered_user: AWFAPIRegisteredUser,
                                                              awfapi_user_username: str,
                                                              expected_message: ResponseMessage) -> None:
     try:
@@ -117,7 +116,6 @@ def test_view_awfapi_user_profile_should_return_401_response(client, monkeypatch
 
         for audb in awfapi_users_db:
             awfapi_user_provider.insert_awfapi_user(audb)
-        register_test_user(awfapi_user_service, awfapi_registered_user)
 
         # Act
         response = client.get(f"/view_awfapi_user_profile/{awfapi_user_username}")
@@ -136,9 +134,7 @@ def test_view_awfapi_user_profile_should_return_401_response(client, monkeypatch
 
 
 @pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "dzhawaria2",
+    (awfapi_readonly_user, "dzhawaria2",
      ResponseMessage(title="User not found.",
                      description="User of given id 'dzhawaria2' was not found.",
                      code=status.HTTP_404_NOT_FOUND))

@@ -38,11 +38,19 @@ def client():
         yield test_client
 
 
+awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                     repeated_password="testpassword",
+                                                                     full_name="Test AWFAPIUserInput",
+                                                                     email="test.user@test.user", is_readonly=False)
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
+
+
 @pytest.mark.parametrize("awfapi_registered_user", [
-    AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                         full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-    AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                         full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True)
+    awfapi_nonreadonly_user,
+    awfapi_readonly_user
 ])
 def test_current_user_should_return_200_response(client, monkeypatch,
                                                  awfapi_registered_user: AWFAPIRegisteredUser) -> None:
@@ -74,15 +82,11 @@ def test_current_user_should_return_200_response(client, monkeypatch,
 
 
 @pytest.mark.parametrize("awfapi_registered_user, access_token, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTY4NjE0MDY2Mn0.sr4CeMbhD12LYzDyAD67AzGReBwgo2jh4zBSLy0_9-I",
+    (awfapi_nonreadonly_user, "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTY4NjE0MDY2Mn0.sr4CeMbhD12LYzDyAD67AzGReBwgo2jh4zBSLy0_9-I",
      ResponseMessage(title="Not authorized.",
                      description="JWT token signature expired.",
                      code=status.HTTP_401_UNAUTHORIZED)),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=False),
-     "fake_access_token",
+    (awfapi_nonreadonly_user, "fake_access_token",
      ResponseMessage(title="Not authorized.",
                      description="Could not validate credentials.",
                      code=status.HTTP_401_UNAUTHORIZED))

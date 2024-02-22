@@ -1,0 +1,38 @@
+{
+  "title": "AdventureWorks2017 Management API 🖥",
+  "description": [
+    "A FastAPI backend for AW2017MA application. (_for testing purposes_)",
+    "## Person endpoints",
+    "* **get all persons** (filters, offset and limit params)",
+    "* **count all persons** (filters params)",
+    "* **get specific person** (person_id required)",
+    "* **create new person** (_readonly users cannot do this!_)",
+    "* **update persons data** (_readonly users cannot do this!_)",
+    "* **delete person** (_readonly users cannot do this!_)",
+    "## Phone number type endpoints",
+    "* **get all phone number types** (filters, offset and limit params)",
+    "* **count all phone number types** (filters params)",
+    "* **get specific phone number type** (phone_number_type_id required)",
+    "* **create new phone number type** (_readonly users cannot do this!_)",
+    "* **update phone number types data** (_readonly users cannot do this!_)",
+    "* **delete phone number type** (_readonly users cannot do this!_)",
+    "## Person phone endpoints",
+    "* **get all person phones** (filters, offset and limit params)",
+    "* **count all person phones** (filters params)",
+    "* **get specific person phone** (person_id, phone_number, phone_number_type_id required)",
+    "* **create new person phone** (_readonly users cannot do this!_)",
+    "* **update person phones data** (_readonly users cannot do this!_)",
+    "* **delete person phone** (_readonly users cannot do this!_)"
+  ],
+  "summary": "AdventureWorks2017 Management API is a FastAPI Python solution for AW2017 datawarehouse management.",
+  "version": "1.0.1",
+  "contact": {
+    "name": "Dzhejkob Awaria",
+    "url": "https://github.com/kaluzny1995",
+    "email": "dzh.awaria@gmail.com"
+  },
+  "license_info": {
+    "name": "FastAPI 0.87.0",
+    "identifier": "OAS3"
+  }
+}

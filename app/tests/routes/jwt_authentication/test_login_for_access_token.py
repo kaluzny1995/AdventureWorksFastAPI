@@ -37,10 +37,14 @@ def client():
         yield test_client
 
 
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
+
+
 @pytest.mark.parametrize("awfapi_registered_user, username, password", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testuser", "testpassword")
+    (awfapi_readonly_user, "testuser", "testpassword")
 ])
 def test_login_for_access_token_should_return_200_response(client, monkeypatch,
                                                            awfapi_registered_user: AWFAPIRegisteredUser,
@@ -68,15 +72,11 @@ def test_login_for_access_token_should_return_200_response(client, monkeypatch,
 
 
 @pytest.mark.parametrize("awfapi_registered_user, username, password, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testuser2", "testpassword",
+    (awfapi_readonly_user, "testuser2", "testpassword",
      ResponseMessage(title="Not authorized.",
                      description="Invalid username.",
                      code=status.HTTP_401_UNAUTHORIZED)),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testuser", "testpassword2",
+    (awfapi_readonly_user, "testuser", "testpassword2",
      ResponseMessage(title="Not authorized.",
                      description="Invalid password.",
                      code=status.HTTP_401_UNAUTHORIZED))

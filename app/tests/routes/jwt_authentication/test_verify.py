@@ -37,16 +37,18 @@ def client():
         yield test_client
 
 
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
+
+
 @pytest.mark.parametrize("awfapi_registered_user, password, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testpassword",
+    (awfapi_readonly_user, "testpassword",
      ResponseMessage(title="VERIFIED",
                      description="Users password is verified.",
                      code=status.HTTP_200_OK)),
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testpassword2",
+    (awfapi_readonly_user, "testpassword2",
      ResponseMessage(title="UNVERIFIED",
                      description="Users password is not verified.",
                      code=status.HTTP_200_OK))
@@ -79,9 +81,7 @@ def test_verify_should_return_200_response(client, monkeypatch,
 
 
 @pytest.mark.parametrize("awfapi_registered_user, password, expected_message", [
-    (AWFAPIRegisteredUser(username="testuser", password="testpassword", repeated_password="testpassword",
-                          full_name="Test AWFAPIUserInput", email="test.user@test.user", is_readonly=True),
-     "testpassword",
+    (awfapi_readonly_user, "testpassword",
      ResponseMessage(title="JWT token not provided or wrong encoded.",
                      description="User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
