@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser, \
+    E401Unauthorized, E404NotFound
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -101,7 +102,8 @@ def test_get_awfapi_user_should_return_200_response(client, monkeypatch,
 @pytest.mark.parametrize("awfapi_user_username, expected_message", [
     ("dzhawaria",
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_get_awfapi_user_should_return_401_response(client, monkeypatch,
@@ -135,8 +137,9 @@ def test_get_awfapi_user_should_return_401_response(client, monkeypatch,
 
 @pytest.mark.parametrize("awfapi_registered_user, awfapi_user_username, expected_message", [
     (awfapi_readonly_user, "dzhawaria2",
-     ResponseMessage(title="AWFAPI User not found.",
-                     description="AWFAPI User of given id 'dzhawaria2' was not found.",
+     ResponseMessage(title="Entity 'AWFAPI User' of id 'dzhawaria2' not found.",
+                     description=f"{E404NotFound.AWFAPI_USER_NOT_FOUND}: "
+                                 f"AWFAPI user of username 'dzhawaria2' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_get_awfapi_user_should_return_404_response(client, monkeypatch,

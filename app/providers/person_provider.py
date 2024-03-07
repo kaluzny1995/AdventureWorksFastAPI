@@ -1,6 +1,6 @@
 import datetime as dt
 import sqlalchemy
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlmodel import create_engine, Session, select
 from sqlmodel.sql.expression import SelectOfScalar
 from typing import Optional, List, Dict, Union, ClassVar
@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Union, ClassVar
 from app import utils, errors
 from app.config import PostgresdbConnectionConfig
 from app.providers import IPersonProvider, BusinessEntityProvider
-from app.models import EOrderType, Person, PersonInput
+from app.models import EOrderType, Person, PersonInput, E400BadRequest, E404NotFound
 
 
 class PersonProvider(IPersonProvider):
@@ -37,11 +37,13 @@ class PersonProvider(IPersonProvider):
                 statement = person_db_order.order_persons(statement)
             if offset is not None:
                 if offset < 0:
-                    raise errors.InvalidSQLValueError(f"Value '{offset}' is invalid for SKIP clause.")
+                    raise errors.InvalidSQLValueError(f"{E400BadRequest.INVALID_SQL_VALUE}: "
+                                                      f"Value '{offset}' is invalid for SKIP clause.")
                 statement = statement.offset(offset)
             if limit is not None:
                 if limit < 0:
-                    raise errors.InvalidSQLValueError(f"Value '{limit}' is invalid for LIMIT clause.")
+                    raise errors.InvalidSQLValueError(f"{E400BadRequest.INVALID_SQL_VALUE}: "
+                                                      f"Value '{limit}' is invalid for LIMIT clause.")
                 statement = statement.limit(limit)
             persons = db_session.execute(statement).all()
         persons = list(map(lambda p: p[0], persons))
@@ -61,7 +63,8 @@ class PersonProvider(IPersonProvider):
             statement = select(Person).where(Person.business_entity_id == person_id)
             person = db_session.execute(statement).first()
         if person is None:
-            raise errors.NotFoundError(f"Person of id '{person_id}' does not exist")
+            raise errors.NotFoundError(f"{E404NotFound.PERSON_NOT_FOUND}: "
+                                       f"Person of id '{person_id}' does not exist.")
         return person[0]
 
     def insert_person(self, person_input: PersonInput) -> int:
@@ -105,6 +108,7 @@ class PersonDbFilter(BaseModel):
         existing_fields = list(map(lambda f: f in PersonDbFilter.__fields__.keys(), params.keys()))
         if not all(existing_fields):
             raise errors.FilterNotFoundError(
+                f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
                 f"Filter string contains fields: '{list(params.keys())}' "
                 f"some of which do not exist in person filtering fields: {list(PersonDbFilter.__fields__.keys())}.")
 
@@ -141,10 +145,12 @@ class PersonDbOrder(BaseModel):
 
     def order_persons(self, person_statement: SelectOfScalar[Person]) -> SelectOfScalar[Person]:
         if self.by in ["additional_contact_info", "demographics"]:
-            raise errors.ColumnNotFoundError(f"Cannot order by column '{self.by}'. "
+            raise errors.ColumnNotFoundError(f"{E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN}: "
+                                             f"Cannot order by column '{self.by}'. "
                                              f"PostgreSQL does not support ordering for 'xml' data type.")
         elif self.by not in self.column_mapping.keys():
-            raise errors.ColumnNotFoundError(f"Column does not exist in persons view ('{self.by}').")
+            raise errors.ColumnNotFoundError(f"{E400BadRequest.INVALID_ORDERING_COLUMN_NAME}: "
+                                             f"Column does not exist in persons view ('{self.by}').")
 
         person_attrs = self.column_mapping[self.by]
         order_statement = list(map(lambda a: a.asc() if self.order == EOrderType.ASC else a.desc(), person_attrs))

@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIRegisteredUser, \
+    E401Unauthorized
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -83,7 +84,8 @@ def test_verify_should_return_200_response(client, monkeypatch,
 @pytest.mark.parametrize("awfapi_registered_user, password, expected_message", [
     (awfapi_readonly_user, "testpassword",
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_verify_should_return_401_response(client, monkeypatch,

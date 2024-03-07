@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, Token, AWFAPIRegisteredUser
+from app.models import ResponseMessage, Token, AWFAPIRegisteredUser, \
+    E401Unauthorized
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -74,11 +75,11 @@ def test_login_for_access_token_should_return_200_response(client, monkeypatch,
 @pytest.mark.parametrize("awfapi_registered_user, username, password, expected_message", [
     (awfapi_readonly_user, "testuser2", "testpassword",
      ResponseMessage(title="Not authorized.",
-                     description="Invalid username.",
+                     description=f"{E401Unauthorized.INVALID_USERNAME}: Invalid username.",
                      code=status.HTTP_401_UNAUTHORIZED)),
     (awfapi_readonly_user, "testuser", "testpassword2",
      ResponseMessage(title="Not authorized.",
-                     description="Invalid password.",
+                     description=f"{E401Unauthorized.INVALID_PASSWORD}: Invalid password.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_login_for_access_token_should_return_401_response(client, monkeypatch,

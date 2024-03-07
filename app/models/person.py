@@ -4,7 +4,7 @@ from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime
 from typing import Any, Optional
 
-from app.models import EPersonType
+from app.models import EPersonType, E422UnprocessableEntity
 from app import errors
 
 
@@ -99,7 +99,8 @@ class Person(SQLModel, table=True):
         if error is not None:
             wrong_fields = list(map(lambda e: e['loc'][0], error.errors()))
             if not all(map(lambda wf: wf in person_hidden_fields, wrong_fields)):
-                raise errors.PydanticValidationError(str(error))
+                raise errors.PydanticValidationError(f"{E422UnprocessableEntity.INVALID_PERSON_VALUES}: "
+                                                     f"{str(error)}")
 
         return values, fields
 

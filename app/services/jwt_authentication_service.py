@@ -6,7 +6,7 @@ from app import errors
 from app.config import JWTAuthenticationConfig
 from app.providers import IAWFAPIUserProvider, AWFAPIUserProvider
 from app.services import AWFAPIUserService
-from app.models import AWFAPIUser, TokenData
+from app.models import AWFAPIUser, TokenData, E401Unauthorized
 
 
 class JWTAuthenticationService:
@@ -26,27 +26,30 @@ class JWTAuthenticationService:
         try:
             user = self.awfapi_user_provider.get_awfapi_user(username)
             if not self.awfapi_user_service.verify_password(password, user.hashed_password):
-                raise errors.InvalidCredentialsError("Invalid password.")
+                raise errors.InvalidCredentialsError(f"{E401Unauthorized.INVALID_PASSWORD}: Invalid password.")
 
             return user
         except errors.NotFoundError:
-            raise errors.InvalidCredentialsError("Invalid username.")
+            raise errors.InvalidCredentialsError(f"{E401Unauthorized.INVALID_USERNAME}: Invalid username.")
 
     def get_user_from_token(self, encoded_jwt: str) -> AWFAPIUser:
         try:
             payload = self.get_access_token_payload(encoded_jwt)
-            username: str = payload.get("sub")
+            username = payload.get("sub")
             if username is None:
-                raise errors.InvalidCredentialsError("Could not decode username from token.")
+                raise errors.InvalidCredentialsError(f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                                     f"Could not decode username from token.")
 
             token_data = TokenData(username=username)
             user = self.awfapi_user_provider.get_awfapi_user(token_data.username)
             return user
 
         except ExpiredSignatureError:
-            raise errors.JWTTokenSignatureExpiredError("JWT token signature expired.")
+            raise errors.JWTTokenSignatureExpiredError(f"{E401Unauthorized.JWT_TOKEN_EXPIRED}: "
+                                                       f"JWT token signature expired.")
         except (JWTError, errors.NotFoundError):
-            raise errors.InvalidCredentialsError("Could not validate credentials.")
+            raise errors.InvalidCredentialsError(f"{E401Unauthorized.INVALID_CREDENTIALS}: "
+                                                 f"Could not validate credentials.")
 
     def create_access_token(self, data: dict) -> str:
         to_encode = data.copy()
@@ -59,6 +62,8 @@ class JWTAuthenticationService:
         try:
             return jwt.decode(encoded_jwt, self.jwt_auth_config.secret_key, algorithms=[self.jwt_auth_config.algorithm])
         except ExpiredSignatureError:
-            raise errors.JWTTokenSignatureExpiredError("JWT token signature expired.")
+            raise errors.JWTTokenSignatureExpiredError(f"{E401Unauthorized.JWT_TOKEN_EXPIRED}: "
+                                                       f"JWT token signature expired.")
         except JWTError:
-            raise errors.InvalidCredentialsError("Could not validate credentials.")
+            raise errors.InvalidCredentialsError(f"{E401Unauthorized.INVALID_CREDENTIALS}: "
+                                                 f"Could not validate credentials.")

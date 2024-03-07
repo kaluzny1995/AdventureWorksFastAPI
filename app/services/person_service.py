@@ -2,7 +2,7 @@ from typing import Optional, List
 
 from app import errors
 from app.providers import IPersonProvider, PersonProvider
-from app.models import EOrderType, Person
+from app.models import EOrderType, Person, E400BadRequest, E404NotFound
 
 
 class PersonService:
@@ -23,13 +23,14 @@ class PersonService:
         elif last_name_phrase is not None:
             filter_string = f"last_name_phrase:{last_name_phrase}"
         else:
-            raise errors.EmptyFieldsError("Either first or last name phrase must be provided.")
+            raise errors.EmptyFieldsError(f"{E400BadRequest.VALUES_NOT_PROVIDED}: "
+                                          f"Either first or last name phrase must be provided.")
 
         found_persons = self.person_provider.get_persons(filters=filter_string,
                                                          order_by="full_name" if is_ordered else None,
                                                          order_type=EOrderType.ASC)
 
         if len(found_persons) == 0:
-            raise errors.NotFoundError("Persons of given phrases not found.")
+            raise errors.NotFoundError(f"{E404NotFound.PERSON_NOT_FOUND}: Persons of given phrases not found.")
 
         return found_persons

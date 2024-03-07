@@ -30,7 +30,6 @@ class ResponseMessage(BaseModel):
 
 
 class ForeignKeyErrorDetails(BaseModel):
-    line: str
     entity: str
     key_column: str
     key_value: str
@@ -38,7 +37,6 @@ class ForeignKeyErrorDetails(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "line": "DETAIL:  Key (PhoneNumberTypeID)=(10) is not present in table \"PhoneNumberType\".",
                 "entity": "PhoneNumberType",
                 "key_column": "PhoneNumberTypeID",
                 "key_value": "10"

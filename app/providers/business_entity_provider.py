@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from app import errors
 from app.config import PostgresdbConnectionConfig
-from app.models import BusinessEntity
+from app.models import BusinessEntity, E404NotFound
 from app.providers import IBusinessEntityProvider
 
 
@@ -33,7 +33,8 @@ class BusinessEntityProvider(IBusinessEntityProvider):
             statement = select(BusinessEntity).where(BusinessEntity.business_entity_id == business_entity_id)
             business_entity = db_session.execute(statement).first()
         if business_entity is None:
-            raise errors.NotFoundError(f"Business entity of id '{business_entity_id}' does not exist")
+            raise errors.NotFoundError(f"{E404NotFound.BUSINESS_ENTITY_NOT_FOUND}: "
+                                       f"Business entity of id '{business_entity_id}' does not exist.")
         return business_entity[0]
 
     def insert_business_entity(self) -> int:

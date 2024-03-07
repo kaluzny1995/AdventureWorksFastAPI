@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from app import errors
 from app.config import MongodbConnectionConfig
-from app.models import AWFAPIUserInput, AWFAPIUser
+from app.models import AWFAPIUserInput, AWFAPIUser, E400BadRequest, E404NotFound
 from app.providers import IAWFAPIUserProvider
 
 
@@ -31,7 +31,8 @@ class AWFAPIUserProvider(IAWFAPIUserProvider):
     def get_awfapi_user(self, username: str) -> AWFAPIUser:
         awfapi_user_definition = self.db_engine.awfapi[self.collection_name].find_one({'username': {"$eq": username}})
         if awfapi_user_definition is None:
-            raise errors.NotFoundError(f"AWFAPI user of username '{username}' does not exist")
+            raise errors.NotFoundError(f"{E404NotFound.AWFAPI_USER_NOT_FOUND}: "
+                                       f"AWFAPI user of username '{username}' does not exist.")
         return AWFAPIUser(**awfapi_user_definition)
 
     def insert_awfapi_user(self, awfapi_user_input: AWFAPIUserInput) -> str:
@@ -40,6 +41,7 @@ class AWFAPIUserProvider(IAWFAPIUserProvider):
 
         awfapi_user = AWFAPIUser(date_created=dt.datetime.utcnow(), date_modified=dt.datetime.utcnow(),
                                  **awfapi_user_input.dict())
+        awfapi_user.validate_assignment(awfapi_user_input)
         self.db_engine.awfapi[self.collection_name].insert_one(awfapi_user.dict())
         return awfapi_user.username
 
@@ -64,7 +66,10 @@ class AWFAPIUserProvider(IAWFAPIUserProvider):
                                    filter(lambda au: au.username != current_username, awfapi_users)))
 
         if new_username in other_usernames:
-            raise errors.UsernameAlreadyExistsError(f"Provided username '{new_username}' already exists.")
+            raise errors.UsernameAlreadyExistsError(f"{E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION}: "
+                                                    f"[username] [{new_username}] "
+                                                    f"Field 'username' must have unique values. "
+                                                    f"Provided username '{new_username}' already exists.")
 
     def __guard_unique_email(self, new_email: str, current_email: Optional[str] = None) -> None:
         awfapi_users = self.get_awfapi_users()
@@ -72,4 +77,7 @@ class AWFAPIUserProvider(IAWFAPIUserProvider):
                                 filter(lambda au: au.email != current_email, awfapi_users)))
 
         if new_email in other_emails:
-            raise errors.EmailAlreadyExistsError(f"Provided email '{new_email}' already exists.")
+            raise errors.EmailAlreadyExistsError(f"{E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION}: "
+                                                 f"[email] [{new_email}] "
+                                                 f"Field 'email' must have unique values. "
+                                                 f"Provided email '{new_email}' already exists.")

@@ -2,7 +2,8 @@ from typing import Optional
 from passlib.context import CryptContext
 
 from app.models import AWFAPIUserInput,\
-    AWFAPIViewedUser, AWFAPIRegisteredUser, AWFAPIChangedUserData, AWFAPIChangedUserCredentials
+    AWFAPIViewedUser, AWFAPIRegisteredUser, AWFAPIChangedUserData, AWFAPIChangedUserCredentials, \
+    E400BadRequest
 from app.providers import IAWFAPIUserProvider, AWFAPIUserProvider
 from app import errors
 
@@ -50,7 +51,8 @@ class AWFAPIUserService:
                                        awfapi_changed_user_credentials: AWFAPIChangedUserCredentials) -> str:
         awfapi_user = self.awfapi_user_provider.get_awfapi_user(awfapi_user_username)
         if not self.verify_password(awfapi_changed_user_credentials.current_password, awfapi_user.hashed_password):
-            raise errors.InvalidCredentialsError("Wrong current password.")
+            raise errors.InvalidCredentialsError(f"{E400BadRequest.WRONG_CURRENT_PASSWORD}: "
+                                                 f"Wrong current password.")
 
         username = awfapi_user.username if awfapi_changed_user_credentials.new_username is None else \
             awfapi_changed_user_credentials.new_username

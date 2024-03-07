@@ -14,7 +14,8 @@ router = APIRouter()
 jwt_auth_service = JWTAuthenticationService()
 
 
-@router.post("/token", response_model=Token, include_in_schema=False)
+@router.post("/token", response_model=Token, include_in_schema=False,
+             responses=get_response_models(ResponseMessage, [200, 401, 500]))
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
     try:
         user = jwt_auth_service.authenticate_user(form_data.username, form_data.password)
@@ -25,6 +26,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
     except errors.InvalidCredentialsError as e:
         raise_401(e)
+    except Exception as e:
+        raise_500(e)
 
 
 @router.get("/verify/{password}", include_in_schema=False,
@@ -43,6 +46,8 @@ async def verify(password: str, token: str = Depends(oauth2_scheme)) -> Response
                                    code=status.HTTP_200_OK)
         else:
             raise_401(e)
+    except errors.JWTTokenSignatureExpiredError as e:
+        raise_401(e)
     except Exception as e:
         raise_500(e)
 

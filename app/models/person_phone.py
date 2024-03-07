@@ -2,6 +2,9 @@ import datetime as dt
 from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime
 
+from app.models import E422UnprocessableEntity
+from app import errors
+
 
 class PersonPhoneInput(BaseModel):
     business_entity_id: int
@@ -47,7 +50,8 @@ class PersonPhone(SQLModel, table=True):
         if error is not None:
             wrong_fields = list(map(lambda e: e['loc'][0], error.errors()))
             if not all(map(lambda wf: wf in person_phone_hidden_fields, wrong_fields)):
-                raise error
+                raise errors.PydanticValidationError(f"{E422UnprocessableEntity.INVALID_PERSON_PHONE_VALUES}: "
+                                                     f"{str(error)}")
 
         for name in fields:
             value = values[name]

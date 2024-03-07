@@ -7,7 +7,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, Person
+from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, Person, \
+    E401Unauthorized, E404NotFound
 from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -134,7 +135,8 @@ def test_get_person_should_return_200_response(client, monkeypatch,
 
 @pytest.mark.parametrize("person_id, expected_message", [
     (0, ResponseMessage(title="JWT token not provided or wrong encoded.",
-                        description="User did not provide or the JWT token is wrongly encoded.",
+                        description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                    f"User did not provide or the JWT token is wrongly encoded.",
                         code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_get_person_should_return_401_response(client, monkeypatch,
@@ -173,8 +175,8 @@ def test_get_person_should_return_401_response(client, monkeypatch,
 
 @pytest.mark.parametrize("awfapi_registered_user, person_id, expected_message", [
     (awfapi_readonly_user, -1,
-     ResponseMessage(title="Person not found.",
-                     description="Person of given id '-1' was not found.",
+     ResponseMessage(title="Entity 'Person' of id '-1' not found.",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Person of id '-1' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_get_person_should_return_404_response(client, monkeypatch,

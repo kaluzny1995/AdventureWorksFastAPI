@@ -7,7 +7,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EOrderType, EPersonType, PersonInput, Person
+from app.models import ResponseMessage, AWFAPIRegisteredUser, EOrderType, EPersonType, PersonInput, Person, \
+    E400BadRequest, E401Unauthorized
 from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -152,51 +153,59 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
 @pytest.mark.parametrize("awfapi_registered_user, filters, order_by, order_type, offset, limit, expected_message", [
     (awfapi_readonly_user, None, None, "asc", -1, 0,
      ResponseMessage(title="Invalid value for SQL clause.",
-                     description="Value '-1' is invalid for SKIP clause.",
+                     description=f"{E400BadRequest.INVALID_SQL_VALUE}: Value '-1' is invalid for SKIP clause.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, None, None, "asc", 0, -1,
      ResponseMessage(title="Invalid value for SQL clause.",
-                     description="Value '-1' is invalid for LIMIT clause.",
+                     description=f"{E400BadRequest.INVALID_SQL_VALUE}: Value '-1' is invalid for LIMIT clause.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, "last_name:pph", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
-                     description="Filter string contains fields: '['last_name']' some of which "
-                                 "do not exist in person filtering fields: "
-                                 "['person_type', 'first_name_phrase', 'last_name_phrase'].",
+                     description=f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
+                                 f"Filter string contains fields: '['last_name']' some of which "
+                                 f"do not exist in person filtering fields: "
+                                 f"['person_type', 'first_name_phrase', 'last_name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, "last_name_phrase:pph,first_name:ffh", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
-                     description="Filter string contains fields: '['last_name_phrase', 'first_name']' some of which "
-                                 "do not exist in person filtering fields: "
-                                 "['person_type', 'first_name_phrase', 'last_name_phrase'].",
+                     description=f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
+                                 f"Filter string contains fields: '['last_name_phrase', 'first_name']' some of which "
+                                 f"do not exist in person filtering fields: "
+                                 f"['person_type', 'first_name_phrase', 'last_name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, "pers_type:GC", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
-                     description="Filter string contains fields: '['pers_type']' some of which "
-                                 "do not exist in person filtering fields: "
-                                 "['person_type', 'first_name_phrase', 'last_name_phrase'].",
+                     description=f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
+                                 f"Filter string contains fields: '['pers_type']' some of which "
+                                 f"do not exist in person filtering fields: "
+                                 f"['person_type', 'first_name_phrase', 'last_name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, "person_type", None, "asc", 0, 0,
      ResponseMessage(title="Invalid filter string.",
-                     description="Invalid filter string: person_type.",
+                     description=f"{E400BadRequest.INVALID_FILTER_STRING}: "
+                                 f"Invalid filter string: person_type.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, "person_type:SC,last_name_phrase", None, "asc", 0, 0,
      ResponseMessage(title="Invalid filter string.",
-                     description="Invalid filter string: person_type:SC,last_name_phrase.",
+                     description=f"{E400BadRequest.INVALID_FILTER_STRING}: "
+                                 f"Invalid filter string: person_type:SC,last_name_phrase.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, None, "name", "asc", 0, 0,
      ResponseMessage(title="Non-existing column for ordering.",
-                     description="Column does not exist in persons view ('name').",
+                     description=f"{E400BadRequest.INVALID_ORDERING_COLUMN_NAME}: "
+                                 f"Column does not exist in persons view ('name').",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, None, "additional_contact_info", "asc", 0, 0,
      ResponseMessage(title="Unsupported ordering for this data type.",
-                     description="Cannot order by column 'additional_contact_info'. "
-                                 "PostgreSQL does not support ordering for 'xml' data type.",
+                     description=f"{E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN}: "
+                                 f"Cannot order by column 'additional_contact_info'. "
+                                 f"PostgreSQL does not support ordering for 'xml' data type.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_readonly_user, None, "demographics", "asc", 0, 0,
      ResponseMessage(title="Unsupported ordering for this data type.",
-                     description="Cannot order by column 'demographics'. "
-                                 "PostgreSQL does not support ordering for 'xml' data type.",
+                     description=f"{E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN}: "
+                                 f"Cannot order by column 'demographics'. "
+                                 f"PostgreSQL does not support ordering for 'xml' data type.",
                      code=status.HTTP_400_BAD_REQUEST)),
 ])
 def test_get_persons_should_return_400_response(client, monkeypatch,
@@ -246,7 +255,8 @@ def test_get_persons_should_return_400_response(client, monkeypatch,
 @pytest.mark.parametrize("filters, order_by, order_type, offset, limit, expected_message", [
     (None, None, "asc", 0, 3,
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_get_persons_should_return_401_response(client, monkeypatch,

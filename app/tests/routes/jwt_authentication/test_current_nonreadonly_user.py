@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIUser, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIUser, AWFAPIRegisteredUser, \
+    E400BadRequest, E401Unauthorized
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -83,7 +84,8 @@ def test_current_nonreadonly_user_should_return_200_response(client, monkeypatch
 @pytest.mark.parametrize("awfapi_registered_user, expected_message", [
     (awfapi_readonly_user,
      ResponseMessage(title="Readonly access for 'testuser'.",
-                     description="Current user 'testuser' has readonly restricted access.",
+                     description=f"{E400BadRequest.READONLY_ACCESS_FOR_USER}: "
+                                 f"[testuser] Current user 'testuser' has readonly restricted access.",
                      code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_current_nonreadonly_user_should_return_400_response(client, monkeypatch,
@@ -117,11 +119,11 @@ def test_current_nonreadonly_user_should_return_400_response(client, monkeypatch
 @pytest.mark.parametrize("awfapi_registered_user, access_token, expected_message", [
     (awfapi_nonreadonly_user, "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTY4NjE0MDY2Mn0.sr4CeMbhD12LYzDyAD67AzGReBwgo2jh4zBSLy0_9-I",
      ResponseMessage(title="Not authorized.",
-                     description="JWT token signature expired.",
+                     description=f"{E401Unauthorized.JWT_TOKEN_EXPIRED}: JWT token signature expired.",
                      code=status.HTTP_401_UNAUTHORIZED)),
     (awfapi_nonreadonly_user, "fake_access_token",
      ResponseMessage(title="Not authorized.",
-                     description="Could not validate credentials.",
+                     description=f"{E401Unauthorized.INVALID_CREDENTIALS}: Could not validate credentials.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_current_nonreadonly_user_should_return_401_response(client, monkeypatch,

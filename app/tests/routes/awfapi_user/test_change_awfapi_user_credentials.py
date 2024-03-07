@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser, AWFAPIChangedUserCredentials
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser, AWFAPIChangedUserCredentials, \
+    E400BadRequest, E401Unauthorized, E404NotFound
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -114,13 +115,15 @@ def test_change_awfapi_user_credentials_should_return_200_response(client, monke
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_credentials, expected_message", [
     (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser", current_password="testpassword2"),
-     ResponseMessage(title="Field 'username' uniqueness.",
-                     description="Field 'username' must have unique values. Provided value 'testuser' already exists.",
+     ResponseMessage(title="Unique constraint violation. Value 'testuser' for field 'username' already exists.",
+                     description=f"{E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION}: "
+                                 f"[username] [testuser] Field 'username' must have unique values. "
+                                 f"Provided username 'testuser' already exists.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser22", current_password="testpassword22"),
      ResponseMessage(title="Wrong current password.",
-                     description="Wrong current password.",
+                     description=f"{E400BadRequest.WRONG_CURRENT_PASSWORD}: Wrong current password.",
                      code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_change_awfapi_user_credentials_should_return_400_response(client, monkeypatch,
@@ -164,7 +167,8 @@ def test_change_awfapi_user_credentials_should_return_400_response(client, monke
     (awfapi_user2, awfapi_nonreadonly_user, "testuser2",
      AWFAPIChangedUserCredentials(new_username="testuser2", current_password="testpassword2"),
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_change_awfapi_user_credentials_should_return_401_response(client, monkeypatch,
@@ -203,8 +207,9 @@ def test_change_awfapi_user_credentials_should_return_401_response(client, monke
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_credentials, expected_message", [
     (awfapi_user2, awfapi_nonreadonly_user, "testuser22",
      AWFAPIChangedUserCredentials(new_username="testuser22", current_password="testpassword22"),
-     ResponseMessage(title="User not found.",
-                     description="User of given id 'testuser22' was not found.",
+     ResponseMessage(title="Entity 'User' of id 'testuser22' not found.",
+                     description=f"{E404NotFound.AWFAPI_USER_NOT_FOUND}: "
+                                 f"AWFAPI user of username 'testuser22' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_change_awfapi_user_credentials_should_return_404_response(client, monkeypatch,

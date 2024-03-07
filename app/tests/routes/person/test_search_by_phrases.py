@@ -6,7 +6,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import PostgresdbConnectionConfig
-from app.models import ResponseMessage, EPersonType, PersonInput, Person
+from app.models import ResponseMessage, EPersonType, PersonInput, Person, \
+    E400BadRequest, E404NotFound
 from app.providers import BusinessEntityProvider, PersonProvider
 from app.services import PersonService
 
@@ -108,10 +109,12 @@ def test_search_by_phrases_should_return_200_response(client, monkeypatch,
 
 @pytest.mark.parametrize("first_name_phrase, last_name_phrase, expected_message", [
     ("", "", ResponseMessage(title="Missing values.",
-                             description="Either first or last name phrase must be provided.",
+                             description=f"{E400BadRequest.VALUES_NOT_PROVIDED}: "
+                                         f"Either first or last name phrase must be provided.",
                              code=status.HTTP_400_BAD_REQUEST)),
     (None, None, ResponseMessage(title="Missing values.",
-                                 description="Either first or last name phrase must be provided.",
+                                 description=f"{E400BadRequest.VALUES_NOT_PROVIDED}: "
+                                             f"Either first or last name phrase must be provided.",
                                  code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_search_by_phrases_should_return_400_response(client, monkeypatch,
@@ -147,20 +150,24 @@ def test_search_by_phrases_should_return_400_response(client, monkeypatch,
 
 @pytest.mark.parametrize("first_name_phrase, last_name_phrase, expected_message", [
     ("ahn", "",
-     ResponseMessage(title="Persons not found",
-                     description="No persons found for given phrases(first_name_phrase: ahn | last_name_phrase: None).",
+     ResponseMessage(title="Persons not found | "
+                           "No persons found for given phrases(first_name_phrase: ahn | last_name_phrase: None).",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Persons of given phrases not found.",
                      code=status.HTTP_404_NOT_FOUND)),
     ("", "oth",
-     ResponseMessage(title="Persons not found",
-                     description="No persons found for given phrases(first_name_phrase: None | last_name_phrase: oth).",
+     ResponseMessage(title="Persons not found | "
+                           "No persons found for given phrases(first_name_phrase: None | last_name_phrase: oth).",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Persons of given phrases not found.",
                      code=status.HTTP_404_NOT_FOUND)),
     ("ohn", "ems",
-     ResponseMessage(title="Persons not found",
-                     description="No persons found for given phrases(first_name_phrase: ohn | last_name_phrase: ems).",
+     ResponseMessage(title="Persons not found | "
+                           "No persons found for given phrases(first_name_phrase: ohn | last_name_phrase: ems).",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Persons of given phrases not found.",
                      code=status.HTTP_404_NOT_FOUND)),
     ("oron", "smi",
-     ResponseMessage(title="Persons not found",
-                     description="No persons found for given phrases(first_name_phrase: oron | last_name_phrase: smi).",
+     ResponseMessage(title="Persons not found | "
+                           "No persons found for given phrases(first_name_phrase: oron | last_name_phrase: smi).",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Persons of given phrases not found.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_search_by_phrases_should_return_404_response(client, monkeypatch,

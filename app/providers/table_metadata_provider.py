@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import errors
 from app.config import PostgresdbConnectionConfig
-from app.models import TableMetadata
+from app.models import TableMetadata, E404NotFound
 
 
 class TableMetadataProvider:
@@ -49,6 +49,7 @@ class TableMetadataProvider:
             db_results = db_session.execute(statement)
             table_metadatas = list(map(lambda dbr: TableMetadata(**dict(zip(fields, dbr))), db_results))
             if len(table_metadatas) == 0:
-                raise errors.NotFoundError(f"No tables found for given criteria "
+                raise errors.NotFoundError(f"{E404NotFound.TABLE_METADATA_NOT_FOUND}: "
+                                           f"No tables found for given criteria "
                                            f"(schema_name: {schema_name} | table_name: {table_name}).")
         return table_metadatas

@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser, AWFAPIChangedUserData
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser, AWFAPIChangedUserData, \
+    E400BadRequest, E401Unauthorized, E404NotFound
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -80,10 +81,11 @@ def test_change_awfapi_user_data_should_return_200_response(client, monkeypatch,
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}", data=awfapi_changed_user_data.json(),
+        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}",
+                              data=awfapi_changed_user_data.json(),
                               headers={
-            'Authorization': f"Bearer {access_token}"
-        })
+                                  'Authorization': f"Bearer {access_token}"
+                              })
 
         # Assert
         message = ResponseMessage(**response.json())
@@ -101,8 +103,10 @@ def test_change_awfapi_user_data_should_return_200_response(client, monkeypatch,
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data, expected_message", [
     (awfapi_user, awfapi_nonreadonly_user2, "testuser2",
      AWFAPIChangedUserData(full_name="Test User 2", email="test.user@test.user", is_readonly=True),
-     ResponseMessage(title="Field 'email' uniqueness.",
-                     description="Field 'email' must have unique values. Provided value 'test.user@test.user' already exists.",
+     ResponseMessage(title="Unique constraint violation. Value 'test.user@test.user' for field 'email' already exists.",
+                     description=f"{E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION}: "
+                                 f"[email] [test.user@test.user] Field 'email' must have unique values. "
+                                 f"Provided email 'test.user@test.user' already exists.",
                      code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_change_awfapi_user_data_should_return_400_response(client, monkeypatch,
@@ -123,10 +127,11 @@ def test_change_awfapi_user_data_should_return_400_response(client, monkeypatch,
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}", data=awfapi_changed_user_data.json(),
+        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}",
+                              data=awfapi_changed_user_data.json(),
                               headers={
-            'Authorization': f"Bearer {access_token}"
-        })
+                                  'Authorization': f"Bearer {access_token}"
+                              })
 
         # Assert
         message = ResponseMessage(**response.json()['detail'])
@@ -145,7 +150,8 @@ def test_change_awfapi_user_data_should_return_400_response(client, monkeypatch,
     (awfapi_user2, awfapi_nonreadonly_user, "testuser2",
      AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False),
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_change_awfapi_user_data_should_return_401_response(client, monkeypatch,
@@ -165,7 +171,8 @@ def test_change_awfapi_user_data_should_return_401_response(client, monkeypatch,
         awfapi_user_service.register_awfapi_user(awfapi_registered_user)
 
         # Act
-        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}", data=awfapi_changed_user_data.json())
+        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}",
+                              data=awfapi_changed_user_data.json())
 
         # Assert
         message = ResponseMessage(**response.json())
@@ -183,8 +190,9 @@ def test_change_awfapi_user_data_should_return_401_response(client, monkeypatch,
 @pytest.mark.parametrize("existing_awfapi_user, awfapi_registered_user, awfapi_user_username, awfapi_changed_user_data, expected_message", [
     (awfapi_user2, awfapi_nonreadonly_user, "testuser22",
      AWFAPIChangedUserData(full_name="Test User 22", email="test.user22@test.user", is_readonly=False),
-     ResponseMessage(title="User not found.",
-                     description="User of given id 'testuser22' was not found.",
+     ResponseMessage(title="Entity 'User' of id 'testuser22' not found.",
+                     description=f"{E404NotFound.AWFAPI_USER_NOT_FOUND}: "
+                                 f"AWFAPI user of username 'testuser22' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_change_awfapi_user_data_should_return_404_response(client, monkeypatch,
@@ -205,10 +213,11 @@ def test_change_awfapi_user_data_should_return_404_response(client, monkeypatch,
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}", data=awfapi_changed_user_data.json(),
+        response = client.put(f"/change_awfapi_user_data/{awfapi_user_username}",
+                              data=awfapi_changed_user_data.json(),
                               headers={
-            'Authorization': f"Bearer {access_token}"
-        })
+                                  'Authorization': f"Bearer {access_token}"
+                              })
 
         # Assert
         message = ResponseMessage(**response.json()['detail'])

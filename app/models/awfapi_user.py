@@ -1,6 +1,9 @@
 import datetime as dt
 from pydantic import BaseModel, validate_model
-from typing import Optional
+from typing import Optional, Any
+
+from app.models import E422UnprocessableEntity
+from app import errors
 
 
 class AWFAPIUserInput(BaseModel):
@@ -56,9 +59,8 @@ class AWFAPIUser(AWFAPIUserInput):
             }
         }
 
-    def update_from_input(self, awfapi_user_input: AWFAPIUserInput) -> 'AWFAPIUser':
-        """ Updates the model from its input. """
-
+    def validate_assignment(self, awfapi_user_input: AWFAPIUserInput) -> Any:
+        """ Validates the model values assignment """
         awfapi_user_input_dict = awfapi_user_input.dict()
         values, fields, error = validate_model(self.__class__, awfapi_user_input_dict)
         awfapi_user_hidden_fields = ["date_created", "date_modified"]
@@ -66,8 +68,14 @@ class AWFAPIUser(AWFAPIUserInput):
         if error is not None:
             wrong_fields = list(map(lambda e: e['loc'][0], error.errors()))
             if not all(map(lambda wf: wf in awfapi_user_hidden_fields, wrong_fields)):
-                raise error
+                raise errors.PydanticValidationError(f"{E422UnprocessableEntity.INVALID_AWFAPI_USER_VALUES}: {str(error)}")
 
+        return values, fields
+
+    def update_from_input(self, awfapi_user_input: AWFAPIUserInput) -> 'AWFAPIUser':
+        """ Updates the model from its input. """
+
+        values, fields = self.validate_assignment(awfapi_user_input)
         for name in fields:
             value = values[name]
             setattr(self, name, value)

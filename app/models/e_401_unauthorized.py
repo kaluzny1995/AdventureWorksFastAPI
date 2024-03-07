@@ -1,0 +1,9 @@
+from enum import Enum
+
+
+class E401Unauthorized(str, Enum):
+    INVALID_USERNAME = "E401_000"
+    INVALID_PASSWORD = "E401_001"
+    JWT_TOKEN_EXPIRED = "E401_002"
+    INVALID_JWT_TOKEN = "E401_003"
+    INVALID_CREDENTIALS = "E401_004"

@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIUser, AWFAPIRegisteredUser, \
+    E400BadRequest, E401Unauthorized
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -92,19 +93,24 @@ def test_create_awfapi_user_should_return_201_response(client, monkeypatch,
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      ResponseMessage(title="Readonly access for 'testuser'.",
-                     description="Current user 'testuser' has readonly restricted access.",
+                     description=f"{E400BadRequest.READONLY_ACCESS_FOR_USER}: "
+                                 f"[testuser] Current user 'testuser' has readonly restricted access.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_nonreadonly_user,
      AWFAPIUserInput(username="testuser", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     ResponseMessage(title="Field 'username' uniqueness.",
-                     description="Field 'username' must have unique values. Provided value 'testuser' already exists.",
+     ResponseMessage(title="Unique constraint violation. Value 'testuser' for field 'username' already exists.",
+                     description=f"{E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION}: "
+                                 f"[username] [testuser] Field 'username' must have unique values. "
+                                 f"Provided username 'testuser' already exists.",
                      code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_nonreadonly_user,
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
-     ResponseMessage(title="Field 'email' uniqueness.",
-                     description="Field 'email' must have unique values. Provided value 'test.user@test.user' already exists.",
+     ResponseMessage(title="Unique constraint violation. Value 'test.user@test.user' for field 'email' already exists.",
+                     description=f"{E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION}: "
+                                 f"[email] [test.user@test.user] Field 'email' must have unique values. "
+                                 f"Provided email 'test.user@test.user' already exists.",
                      code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_create_awfapi_user_should_return_400_response(client, monkeypatch,
@@ -143,7 +149,8 @@ def test_create_awfapi_user_should_return_400_response(client, monkeypatch,
     (AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_create_awfapi_user_should_return_401_response(client, monkeypatch,

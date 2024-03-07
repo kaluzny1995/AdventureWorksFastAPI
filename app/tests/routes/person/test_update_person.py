@@ -7,7 +7,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, Person
+from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, Person, \
+    E400BadRequest, E401Unauthorized, E404NotFound, E422UnprocessableEntity
 from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -153,7 +154,8 @@ def test_update_person_should_return_200_response(client, monkeypatch,
      -1,
      PersonInput(person_type=EPersonType.VC, first_name="Dzh", middle_name="J", last_name="Aw"),
      ResponseMessage(title="Readonly access for 'testuser'.",
-                     description="Current user 'testuser' has readonly restricted access.",
+                     description=f"{E400BadRequest.READONLY_ACCESS_FOR_USER}: "
+                                 f"[testuser] Current user 'testuser' has readonly restricted access.",
                      code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_update_person_should_return_400_response(client, monkeypatch,
@@ -203,7 +205,8 @@ def test_update_person_should_return_400_response(client, monkeypatch,
      -1,
      PersonInput(person_type=EPersonType.VC, first_name="Dzh", middle_name="J", last_name="Aw"),
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_update_person_should_return_401_response(client, monkeypatch,
@@ -249,8 +252,8 @@ def test_update_person_should_return_401_response(client, monkeypatch,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
      -1,
      PersonInput(person_type=EPersonType.VC, first_name="Dzh", middle_name="J", last_name="Aw"),
-     ResponseMessage(title="Person not found.",
-                     description="Person of given id '-1' was not found.",
+     ResponseMessage(title="Entity 'Person' of id '-1' not found.",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Person of id '-1' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_update_person_should_return_404_response(client, monkeypatch,
@@ -300,15 +303,35 @@ def test_update_person_should_return_404_response(client, monkeypatch,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
      -1,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria", email_promotion=-1),
-     ResponseMessage(title="Pydantic validation error: 4 validation errors for Person",
-                     description="{'email_promotion': 'ensure this value is greater than or equal to 0'}",
+     ResponseMessage(title="Pydantic validation error: 4 validation errors for Person | "
+                           "{'email_promotion': 'ensure this value is greater than or equal to 0'}",
+                     description=f"{E422UnprocessableEntity.INVALID_PERSON_VALUES}: "
+                                 f"4 validation errors for Person\n"
+                                 f"business_entity_id\n"
+                                 f"  field required (type=value_error.missing)\n"
+                                 f"email_promotion\n"
+                                 f"  ensure this value is greater than or equal to 0 (type=value_error.number.not_ge; limit_value=0)\n"
+                                 f"rowguid\n"
+                                 f"  field required (type=value_error.missing)\n"
+                                 f"modified_date\n"
+                                 f"  field required (type=value_error.missing)",
                      code=status.HTTP_422_UNPROCESSABLE_ENTITY)),
     (awfapi_nonreadonly_user,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
      -1,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria", email_promotion=3),
-     ResponseMessage(title="Pydantic validation error: 4 validation errors for Person",
-                     description="{'email_promotion': 'ensure this value is less than or equal to 2'}",
+     ResponseMessage(title="Pydantic validation error: 4 validation errors for Person | "
+                           "{'email_promotion': 'ensure this value is less than or equal to 2'}",
+                     description=f"{E422UnprocessableEntity.INVALID_PERSON_VALUES}: "
+                                 f"4 validation errors for Person\n"
+                                 f"business_entity_id\n"
+                                 f"  field required (type=value_error.missing)\n"
+                                 f"email_promotion\n"
+                                 f"  ensure this value is less than or equal to 2 (type=value_error.number.not_le; limit_value=2)\n"
+                                 f"rowguid\n"
+                                 f"  field required (type=value_error.missing)\n"
+                                 f"modified_date\n"
+                                 f"  field required (type=value_error.missing)",
                      code=status.HTTP_422_UNPROCESSABLE_ENTITY))
 ])
 def test_update_person_should_return_422_response(client, monkeypatch,

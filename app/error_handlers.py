@@ -6,7 +6,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 from typing import Optional
 
 from app import utils
-from app.models import EAuthenticationStatus, ResponseMessage
+from app.models import EAuthenticationStatus, ResponseMessage, E401Unauthorized, E400BadRequest
 
 
 def raise_400(e: Exception):
@@ -20,24 +20,25 @@ def raise_400(e: Exception):
     * related fields have empty values (ex. at least one of them must be provided)
     """
     e_message = str(e)
+    e_400_code = E400BadRequest(e_message[:8])
 
-    if "already exists" in e_message:
-        unique_field, value = utils.get_unique_field_details_from_message(e_message)
+    if e_400_code == E400BadRequest.UNIQUE_CONSTRAINT_VIOLATION:
+        field, value = utils.get_unique_field_details_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=ResponseMessage(title=f"Field '{unique_field}' uniqueness.",
-                                                   description=f"Field '{unique_field}' must have unique values. "
-                                                               f"Provided value '{value}' already exists.",
+                            detail=ResponseMessage(title=f"Unique constraint violation. "
+                                                         f"Value '{value}' for field '{field}' already exists.",
+                                                   description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "is invalid for" in e_message:
+    elif e_400_code == E400BadRequest.INVALID_SQL_VALUE:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Invalid value for SQL clause.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "readonly" in e_message:
+    elif e_400_code == E400BadRequest.READONLY_ACCESS_FOR_USER:
         username = utils.get_username_from_message(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title=f"Readonly access for '{username}'.",
@@ -45,53 +46,53 @@ def raise_400(e: Exception):
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "current password" in e_message:
+    elif e_400_code == E400BadRequest.WRONG_CURRENT_PASSWORD:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title=f"Wrong current password.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "ForeignKeyViolation" in e_message:
+    elif e_400_code == E400BadRequest.FOREIGN_KEY_CONSTRAINT_VIOLATION:
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=ResponseMessage(title="Related entity id does not exist.",
-                                                   description=f"Related entity '{foreign_key_details.entity}' "
-                                                               f"has no entry of given id "
-                                                               f"'{foreign_key_details.key_column}="
-                                                               f"({foreign_key_details.key_value})'.",
+                            detail=ResponseMessage(title="Foreign key constraint violation. "
+                                                         f"Entity '{foreign_key_details.entity}' with "
+                                                         f"'{foreign_key_details.key_column}'="
+                                                         f"({foreign_key_details.key_value}) does not exist.",
+                                                   description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": foreign_key_details.line})
+                            headers={"description": e_message})
 
-    elif "Invalid filter string" in e_message:
+    elif e_400_code == E400BadRequest.INVALID_FILTER_STRING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Invalid filter string.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "Filter string contains fields" in e_message:
+    elif e_400_code == E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Non-existing fields in filter string.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "must be provided" in e_message:
+    elif e_400_code == E400BadRequest.VALUES_NOT_PROVIDED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Missing values.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "Column does not exist" in e_message:
+    elif e_400_code == E400BadRequest.INVALID_ORDERING_COLUMN_NAME:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Non-existing column for ordering.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": e_message})
 
-    elif "Cannot order by column" in e_message:
+    elif e_400_code == E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Unsupported ordering for this data type.",
                                                    description=e_message,
@@ -117,14 +118,14 @@ def raise_404(e: Exception, entity: str, entity_id: object, info: Optional[str] 
     """ Raises 404 when entity of given id or criteria was not found """
     if info is not None and detail is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=ResponseMessage(title=info,
-                                                   description=detail,
+                            detail=ResponseMessage(title=f"{info} | {detail}",
+                                                   description=str(e),
                                                    code=status.HTTP_404_NOT_FOUND).dict(),
                             headers={"description": str(e)})
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=ResponseMessage(title=f"{entity} not found.",
-                                                   description=f"{entity} of given id '{entity_id}' was not found.",
+                            detail=ResponseMessage(title=f"Entity '{entity}' of id '{entity_id}' not found.",
+                                                   description=str(e),
                                                    code=status.HTTP_404_NOT_FOUND).dict(),
                             headers={"description": str(e)})
 
@@ -133,10 +134,10 @@ def raise_422(e: Exception):
     """ Raises 422 when validation error occur during pydantic object creation """
     title, details = utils.get_validation_error_details_from_message(str(e), is_required_skipped=True)
     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=ResponseMessage(title=f"Pydantic validation error: {title}",
-                                               description=str(details),
+                        detail=ResponseMessage(title=f"Pydantic validation error: {title} | {details}",
+                                               description=str(e),
                                                code=status.HTTP_422_UNPROCESSABLE_ENTITY).dict(),
-                        headers={"description": str(dict(title=title, details=details))})
+                        headers={"description": str(e)})
 
 
 def raise_500(e: Exception):
@@ -165,7 +166,8 @@ async def custom_http_error_handler(request: Request, exc: StarletteHTTPExceptio
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED,
                             content=ResponseMessage(
                                 title="JWT token not provided or wrong encoded.",
-                                description="User did not provide or the JWT token is wrongly encoded.",
+                                description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                            f"User did not provide or the JWT token is wrongly encoded.",
                                 code=status.HTTP_401_UNAUTHORIZED
                             ).dict())
 

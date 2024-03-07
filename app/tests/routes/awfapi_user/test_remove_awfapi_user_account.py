@@ -4,7 +4,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig
-from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser
+from app.models import ResponseMessage, AWFAPIUserInput, AWFAPIRegisteredUser, \
+    E401Unauthorized, E404NotFound
 from app.providers import AWFAPIUserProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -97,7 +98,8 @@ def test_remove_awfapi_user_account_should_return_200_response(client, monkeypat
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      "testuser2",
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_remove_awfapi_user_account_should_return_401_response(client, monkeypatch,
@@ -134,8 +136,9 @@ def test_remove_awfapi_user_account_should_return_401_response(client, monkeypat
      AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
                      is_readonly=True, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
      "testuser22",
-     ResponseMessage(title="User not found.",
-                     description="User of given id 'testuser22' was not found.",
+     ResponseMessage(title="Entity 'User' of id 'testuser22' not found.",
+                     description=f"{E404NotFound.AWFAPI_USER_NOT_FOUND}: "
+                                 f"AWFAPI user of username 'testuser22' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_remove_awfapi_user_account_should_return_404_response(client, monkeypatch,

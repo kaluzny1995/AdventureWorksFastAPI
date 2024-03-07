@@ -5,7 +5,7 @@ from sqlmodel import create_engine, Session, select
 
 from app import errors
 from app.config import PostgresdbConnectionConfig
-from app.models import PhoneNumberType, PhoneNumberTypeInput
+from app.models import PhoneNumberType, PhoneNumberTypeInput, E404NotFound
 from app.providers import IPhoneNumberTypeProvider
 
 
@@ -34,7 +34,8 @@ class PhoneNumberTypeProvider(IPhoneNumberTypeProvider):
             statement = select(PhoneNumberType).where(PhoneNumberType.phone_number_type_id == phone_number_type_id)
             phone_number_type = db_session.execute(statement).first()
         if phone_number_type is None:
-            raise errors.NotFoundError(f"Phone number type of id '{phone_number_type_id}' does not exist")
+            raise errors.NotFoundError(f"{E404NotFound.PHONE_NUMBER_TYPE_NOT_FOUND}: "
+                                       f"Phone number type of id '{phone_number_type_id}' does not exist.")
         return phone_number_type[0]
 
     def insert_phone_number_type(self, phone_number_type_input: PhoneNumberTypeInput) -> int:

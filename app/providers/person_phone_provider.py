@@ -6,7 +6,7 @@ from sqlmodel import create_engine, Session, select
 
 from app import errors
 from app.config import PostgresdbConnectionConfig
-from app.models import PersonPhone, PersonPhoneInput
+from app.models import PersonPhone, PersonPhoneInput, E400BadRequest, E404NotFound
 from app.providers import IPersonPhoneProvider
 
 
@@ -38,7 +38,8 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                            PersonPhone.phone_number_type_id == person_phone_id[2]))
             person_phone = db_session.execute(statement).first()
         if person_phone is None:
-            raise errors.NotFoundError(f"Person phone of id '{person_phone_id}' does not exist")
+            raise errors.NotFoundError(f"{E404NotFound.PERSON_PHONE_NOT_FOUND}: "
+                                       f"Person phone of id '{person_phone_id}' does not exist.")
         return person_phone[0]
 
     def insert_person_phone(self, person_phone_input: PersonPhoneInput) -> Tuple[int, str, int]:
@@ -51,7 +52,7 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                                    person_phone.phone_number_type_id)
             return person_phone_id
         except sqlalchemy.exc.IntegrityError as e:
-            raise errors.IntegrityError(str(e))
+            raise errors.IntegrityError(f"{E400BadRequest.FOREIGN_KEY_CONSTRAINT_VIOLATION}: {str(e)}")
 
     def update_person_phone(self, person_phone_id: Tuple[int, str, int],
                             person_phone_input: PersonPhoneInput) -> Tuple[int, str, int]:
@@ -67,7 +68,7 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                                    updated_person_phone.phone_number_type_id)
             return person_phone_id
         except sqlalchemy.exc.IntegrityError as e:
-            raise errors.IntegrityError(str(e))
+            raise errors.IntegrityError(f"{E400BadRequest.FOREIGN_KEY_CONSTRAINT_VIOLATION}: {str(e)}")
 
     def delete_person_phone(self, person_phone_id: Tuple[int, str, int]) -> None:
         deleted_person_phone = self.get_person_phone(person_phone_id)

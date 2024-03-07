@@ -7,7 +7,8 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput
+from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, \
+    E400BadRequest, E401Unauthorized, E404NotFound
 from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -132,7 +133,8 @@ def test_delete_person_should_return_200_response(client, monkeypatch,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
      -1,
      ResponseMessage(title="Readonly access for 'testuser'.",
-                     description="Current user 'testuser' has readonly restricted access.",
+                     description=f"{E400BadRequest.READONLY_ACCESS_FOR_USER}: "
+                                 f"[testuser] Current user 'testuser' has readonly restricted access.",
                      code=status.HTTP_400_BAD_REQUEST))
 ])
 def test_delete_person_should_return_400_response(client, monkeypatch,
@@ -180,7 +182,8 @@ def test_delete_person_should_return_400_response(client, monkeypatch,
     (PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
      -1,
      ResponseMessage(title="JWT token not provided or wrong encoded.",
-                     description="User did not provide or the JWT token is wrongly encoded.",
+                     description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
+                                 f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
 def test_delete_person_should_return_401_response(client, monkeypatch,
@@ -224,8 +227,8 @@ def test_delete_person_should_return_401_response(client, monkeypatch,
     (awfapi_nonreadonly_user,
      PersonInput(person_type=EPersonType.GC, first_name="Dzhejkob", last_name="Awaria"),
      -1,
-     ResponseMessage(title="Person not found.",
-                     description="Person of given id '{}' was not found.",
+     ResponseMessage(title="Entity 'Person' of id '-1' not found.",
+                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Person of id '-1' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
 def test_delete_person_should_return_404_response(client, monkeypatch,
