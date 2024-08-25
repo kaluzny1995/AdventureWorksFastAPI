@@ -14,7 +14,7 @@ router = APIRouter()
 person_phone_provider = PersonPhoneProvider()
 
 
-@router.get("/all_person_phones", tags=["Person Phones"],
+@router.get("/get_person_phones", tags=["Person Phones"],
             responses=get_response_models(List[PersonPhone], [200, 400, 401, 500]))
 def get_person_phones(offset: int = 0, limit: int = 10,
                       _: AWFAPIUser = Depends(get_current_user)) -> List[PersonPhone]:

@@ -1,6 +1,7 @@
 import datetime as dt
 from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime
+from typing import Any
 
 from app.models import E422UnprocessableEntity
 from app import errors
@@ -11,8 +12,21 @@ class PhoneNumberTypeInput(BaseModel):
 
     class Config:
         schema_extra = {
-            "example": {
-                "name": "Something"
+            "examples": {
+                "first": {
+                    "summary": "First example",
+                    "description": "First phone number type example",
+                    "value": {
+                        "name": "Remote work",
+                    }
+                },
+                "second": {
+                    "summary": "Second example",
+                    "description": "Second phone number type example",
+                    "value": {
+                        "name": "Abroad work",
+                    }
+                }
             }
         }
 
@@ -34,19 +48,25 @@ class PhoneNumberType(SQLModel, table=True):
                 }
         }
 
-    def update_from_input(self, phone_numer_type_input: PhoneNumberTypeInput) -> 'PhoneNumberType':
-        """ Updates the model from its input. """
+    def validate_assignment(self, phone_numer_type_input: PhoneNumberTypeInput) -> Any:
+        """ Validates the model values assignment """
 
-        person_input_dict = phone_numer_type_input.dict()
-        values, fields, error = validate_model(self.__class__, person_input_dict)
-        person_hidden_fields = ["phone_number_type_id", "modified_date"]
+        phone_number_type_input_dict = phone_numer_type_input.dict()
+        values, fields, error = validate_model(self.__class__, phone_number_type_input_dict)
+        phone_number_type_hidden_fields = ["phone_number_type_id", "modified_date"]
 
         if error is not None:
             wrong_fields = list(map(lambda e: e['loc'][0], error.errors()))
-            if not all(map(lambda wf: wf in person_hidden_fields, wrong_fields)):
+            if not all(map(lambda wf: wf in phone_number_type_hidden_fields, wrong_fields)):
                 raise errors.PydanticValidationError(f"{E422UnprocessableEntity.INVALID_PHONE_NUMBER_TYPE_VALUES}: "
                                                      f"{str(error)}")
 
+        return values, fields
+
+    def update_from_input(self, phone_numer_type_input: PhoneNumberTypeInput) -> 'PhoneNumberType':
+        """ Updates the model from its input. """
+
+        values, fields = self.validate_assignment(phone_numer_type_input)
         for name in fields:
             value = values[name]
             setattr(self, name, value)

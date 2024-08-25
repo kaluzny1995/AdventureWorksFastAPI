@@ -7,14 +7,14 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EOrderType, EPersonType, PersonInput, Person, \
+from app.models import ResponseMessage, AWFAPIRegisteredUser, EOrderType, PhoneNumberTypeInput, PhoneNumberType, \
     E400BadRequest, E401Unauthorized
-from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
+from app.providers import AWFAPIUserProvider, PhoneNumberTypeProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
 from app.routes import jwt_authentication as jwt_authentication_routes
 from app.routes import awfapi_user as awfapi_user_routes
-from app.routes import person as person_routes
+from app.routes import phone_number_type as phone_number_type_routes
 from app import oauth2_handlers
 
 from app.tests.fixtures.fixtures_tests import (register_test_user, obtain_access_token,
@@ -38,13 +38,8 @@ jwt_authentication_service: JWTAuthenticationService = JWTAuthenticationService(
 
 postgresdb_connection_string: str = PostgresdbConnectionConfig.get_db_connection_string(test_suffix="_test")
 postgresdb_engine: sqlalchemy.engine.Engine = create_engine(postgresdb_connection_string)
-business_entity_provider: BusinessEntityProvider = BusinessEntityProvider(
+phone_number_type_provider: PhoneNumberTypeProvider = PhoneNumberTypeProvider(
     connection_string=postgresdb_connection_string,
-    db_engine=postgresdb_engine
-)
-person_provider: PersonProvider = PersonProvider(
-    connection_string=postgresdb_connection_string,
-    business_entity_provider=business_entity_provider,
     db_engine=postgresdb_engine
 )
 
@@ -65,38 +60,30 @@ awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="test
                                                                   repeated_password="testpassword",
                                                                   full_name="Test AWFAPIUserInput",
                                                                   email="test.user@test.user", is_readonly=True)
-persons_db: List[PersonInput] = [
-    PersonInput(person_type=EPersonType.GC, first_name="John", last_name="Doe"),
-    PersonInput(person_type=EPersonType.EM, first_name="John", last_name="Smith"),
-    PersonInput(person_type=EPersonType.IN, first_name="John", last_name="Adams"),
-    PersonInput(person_type=EPersonType.VC, first_name="John", middle_name="K", last_name="Adams"),
-    PersonInput(person_type=EPersonType.SP, first_name="John", middle_name="J", last_name="Adams"),
-    PersonInput(person_type=EPersonType.GC, first_name="Brian", last_name="Washer"),
-    PersonInput(person_type=EPersonType.SC, first_name="Aaron", last_name="Dasmi"),
-    PersonInput(person_type=EPersonType.SC, first_name="Aaron", last_name="Washington"),
-    PersonInput(person_type=EPersonType.SC, first_name="Sharon", last_name="Smith"),
-    PersonInput(person_type=EPersonType.SC, first_name="Claire", last_name="Smith"),
+phone_number_types_db: List[PhoneNumberTypeInput] = [
+    PhoneNumberTypeInput(name="Cell"),
+    PhoneNumberTypeInput(name="Mobile"),
+    PhoneNumberTypeInput(name="Home"),
+    PhoneNumberTypeInput(name="Home 2"),
+    PhoneNumberTypeInput(name="Home em."),
 ]
 
 
-@pytest.mark.parametrize("awfapi_registered_user, filters, order_by, order_type, offset, limit, expected_persons", [
-    (awfapi_nonreadonly_user, None, None, "asc", 0, 3, [persons_db[0], persons_db[1], persons_db[2]]),
-    (awfapi_nonreadonly_user, None, None, "asc", 1, 1, [persons_db[1]]),
-    (awfapi_readonly_user, None, None, "asc", 0, 3, [persons_db[0], persons_db[1], persons_db[2]]),
-    (awfapi_nonreadonly_user, "person_type:GC", None, "asc", 0, 10, [persons_db[0], persons_db[5]]),
-    (awfapi_nonreadonly_user, "person_type:SC,last_name_phrase:smi", None, "asc", 0, 10, [persons_db[6], persons_db[8], persons_db[9]]),
-    (awfapi_nonreadonly_user, "person_type:SC,first_name_phrase:ron,last_name_phrase:smi", None, "asc", 0, 10, [persons_db[6], persons_db[8]]),
-    (awfapi_nonreadonly_user, "first_name_phrase:john", "full_name", "asc", 0, 10, [persons_db[4], persons_db[3], persons_db[2], persons_db[0], persons_db[1]]),
-    (awfapi_nonreadonly_user, "first_name_phrase:john", "full_name", "asc", 0, 3, [persons_db[4], persons_db[3], persons_db[2]]),
-    (awfapi_nonreadonly_user, "first_name_phrase:john", "full_name", "asc", 2, 3, [persons_db[2], persons_db[0], persons_db[1]]),
-    (awfapi_nonreadonly_user, "first_name_phrase:john", "person_type", "desc", 0, 10, [persons_db[3], persons_db[4], persons_db[2], persons_db[0], persons_db[1]]),
+@pytest.mark.parametrize("awfapi_registered_user, filters, order_by, order_type, offset, limit, expected_phone_number_types", [
+    (awfapi_nonreadonly_user, None, None, "asc", 0, 3, [phone_number_types_db[0], phone_number_types_db[1], phone_number_types_db[2]]),
+    (awfapi_nonreadonly_user, None, None, "asc", 1, 1, [phone_number_types_db[1]]),
+    (awfapi_readonly_user, None, None, "asc", 0, 3, [phone_number_types_db[0], phone_number_types_db[1], phone_number_types_db[2]]),
+    (awfapi_nonreadonly_user, "name_phrase:hom", None, "asc", 0, 10, [phone_number_types_db[2], phone_number_types_db[3], phone_number_types_db[4]]),
+    (awfapi_nonreadonly_user, "name_phrase:hom", "name", "asc", 0, 10, [phone_number_types_db[2], phone_number_types_db[3], phone_number_types_db[4]]),
+    (awfapi_nonreadonly_user, "name_phrase:hom", "name", "asc", 1, 1, [phone_number_types_db[3]]),
+    (awfapi_nonreadonly_user, "name_phrase:hom", "name", "desc", 0, 10, [phone_number_types_db[4], phone_number_types_db[3], phone_number_types_db[2]]),
 ])
-def test_get_persons_should_return_200_response(client, monkeypatch,
-                                                awfapi_registered_user: AWFAPIRegisteredUser,
-                                                filters: Optional[str],
-                                                order_by: Optional[str], order_type: Optional[EOrderType],
-                                                offset: int, limit: int,
-                                                expected_persons: List[PersonInput]) -> None:
+def test_get_phone_number_types_should_return_200_response(client, monkeypatch,
+                                                           awfapi_registered_user: AWFAPIRegisteredUser,
+                                                           filters: Optional[str],
+                                                           order_by: Optional[str], order_type: Optional[EOrderType],
+                                                           offset: int, limit: int,
+                                                           expected_phone_number_types: List[PhoneNumberTypeInput]) -> None:
     try:
         # Arrange
         create_tables(postgresdb_engine)
@@ -106,15 +93,15 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(phone_number_type_routes, 'phone_number_type_provider', phone_number_type_provider)
 
-        for pdb in persons_db:
-            person_provider.insert_person(pdb)
+        for pntdb in phone_number_types_db:
+            phone_number_type_provider.insert_phone_number_type(pntdb)
         register_test_user(awfapi_user_service, awfapi_registered_user)
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.get("/get_persons",
+        response = client.get("/get_phone_number_types",
                               params={'filters': filters,
                                       'order_by': order_by, 'order_type': order_type,
                                       'offset': offset, 'limit': limit},
@@ -123,22 +110,12 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
         # Assert
         assert response.status_code == status.HTTP_200_OK
         response_dict = response.json()
-        persons = list(map(lambda rd: Person(**rd), response_dict))
-        assert len(persons) == len(expected_persons)
-        for p, ep in zip(persons, expected_persons):
-            assert p.business_entity_id is not None
-            assert p.person_type == ep.person_type
-            assert p.name_style == ep.name_style
-            assert p.title == ep.title
-            assert p.first_name == ep.first_name
-            assert p.middle_name == ep.middle_name
-            assert p.last_name == ep.last_name
-            assert p.suffix == ep.suffix
-            assert p.email_promotion == ep.email_promotion
-            assert p.additional_contact_info == ep.additional_contact_info
-            assert p.demographics == ep.demographics
-            assert p.rowguid is not None
-            assert p.modified_date is not None
+        phone_number_types = list(map(lambda rd: PhoneNumberType(**rd), response_dict))
+        assert len(phone_number_types) == len(expected_phone_number_types)
+        for pnt, epnt in zip(phone_number_types, expected_phone_number_types):
+            assert pnt.phone_number_type_id is not None
+            assert pnt.name == epnt.name
+            assert pnt.modified_date is not None
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -158,61 +135,37 @@ def test_get_persons_should_return_200_response(client, monkeypatch,
      ResponseMessage(title="Invalid value for SQL clause.",
                      description=f"{E400BadRequest.INVALID_SQL_VALUE}: Value '-1' is invalid for LIMIT clause.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "last_name:pph", None, "asc", 0, 0,
+    (awfapi_readonly_user, "name:hom", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
                      description=f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
-                                 f"Filter string contains fields: '['last_name']' some of which "
-                                 f"do not exist in person filtering fields: "
-                                 f"['person_type', 'first_name_phrase', 'last_name_phrase'].",
+                                 f"Filter string contains fields: '['name']' some of which "
+                                 f"do not exist in phone number type filtering fields: "
+                                 f"['name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "last_name_phrase:pph,first_name:ffh", None, "asc", 0, 0,
+    (awfapi_readonly_user, "name_phr:hom", None, "asc", 0, 0,
      ResponseMessage(title="Non-existing fields in filter string.",
                      description=f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
-                                 f"Filter string contains fields: '['last_name_phrase', 'first_name']' some of which "
-                                 f"do not exist in person filtering fields: "
-                                 f"['person_type', 'first_name_phrase', 'last_name_phrase'].",
+                                 f"Filter string contains fields: '['name_phr']' some of which "
+                                 f"do not exist in phone number type filtering fields: "
+                                 f"['name_phrase'].",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "pers_type:GC", None, "asc", 0, 0,
-     ResponseMessage(title="Non-existing fields in filter string.",
-                     description=f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
-                                 f"Filter string contains fields: '['pers_type']' some of which "
-                                 f"do not exist in person filtering fields: "
-                                 f"['person_type', 'first_name_phrase', 'last_name_phrase'].",
-                     code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "person_type", None, "asc", 0, 0,
+    (awfapi_readonly_user, "name_phrase", None, "asc", 0, 0,
      ResponseMessage(title="Invalid filter string.",
                      description=f"{E400BadRequest.INVALID_FILTER_STRING}: "
-                                 f"Invalid filter string: person_type.",
+                                 f"Invalid filter string: name_phrase.",
                      code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, "person_type:SC,last_name_phrase", None, "asc", 0, 0,
-     ResponseMessage(title="Invalid filter string.",
-                     description=f"{E400BadRequest.INVALID_FILTER_STRING}: "
-                                 f"Invalid filter string: person_type:SC,last_name_phrase.",
-                     code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, None, "name", "asc", 0, 0,
+    (awfapi_readonly_user, None, "name_phrase", "asc", 0, 0,
      ResponseMessage(title="Non-existing column for ordering.",
                      description=f"{E400BadRequest.INVALID_ORDERING_COLUMN_NAME}: "
-                                 f"Column does not exist in persons view ('name').",
-                     code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, None, "additional_contact_info", "asc", 0, 0,
-     ResponseMessage(title="Unsupported ordering for this data type.",
-                     description=f"{E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN}: "
-                                 f"Cannot order by column 'additional_contact_info'. "
-                                 f"PostgreSQL does not support ordering for 'xml' data type.",
-                     code=status.HTTP_400_BAD_REQUEST)),
-    (awfapi_readonly_user, None, "demographics", "asc", 0, 0,
-     ResponseMessage(title="Unsupported ordering for this data type.",
-                     description=f"{E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN}: "
-                                 f"Cannot order by column 'demographics'. "
-                                 f"PostgreSQL does not support ordering for 'xml' data type.",
+                                 f"Column does not exist in phone number types view ('name_phrase').",
                      code=status.HTTP_400_BAD_REQUEST)),
 ])
-def test_get_persons_should_return_400_response(client, monkeypatch,
-                                                awfapi_registered_user: AWFAPIRegisteredUser,
-                                                filters: Optional[str],
-                                                order_by: Optional[str], order_type: Optional[EOrderType],
-                                                offset: int, limit: int,
-                                                expected_message: ResponseMessage) -> None:
+def test_get_phone_number_types_should_return_400_response(client, monkeypatch,
+                                                           awfapi_registered_user: AWFAPIRegisteredUser,
+                                                           filters: Optional[str],
+                                                           order_by: Optional[str], order_type: Optional[EOrderType],
+                                                           offset: int, limit: int,
+                                                           expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         create_tables(postgresdb_engine)
@@ -222,15 +175,15 @@ def test_get_persons_should_return_400_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(phone_number_type_routes, 'phone_number_type_provider', phone_number_type_provider)
 
-        for pdb in persons_db:
-            person_provider.insert_person(pdb)
+        for pntdb in phone_number_types_db:
+            phone_number_type_provider.insert_phone_number_type(pntdb)
         register_test_user(awfapi_user_service, awfapi_registered_user)
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.get("/get_persons",
+        response = client.get("/get_phone_number_types",
                               params={'filters': filters,
                                       'order_by': order_by, 'order_type': order_type,
                                       'offset': offset, 'limit': limit},
@@ -258,11 +211,11 @@ def test_get_persons_should_return_400_response(client, monkeypatch,
                                  f"User did not provide or the JWT token is wrongly encoded.",
                      code=status.HTTP_401_UNAUTHORIZED))
 ])
-def test_get_persons_should_return_401_response(client, monkeypatch,
-                                                filters: Optional[str],
-                                                order_by: Optional[str], order_type: Optional[EOrderType],
-                                                offset: int, limit: int,
-                                                expected_message: ResponseMessage) -> None:
+def test_get_phone_number_types_should_return_401_response(client, monkeypatch,
+                                                           filters: Optional[str],
+                                                           order_by: Optional[str], order_type: Optional[EOrderType],
+                                                           offset: int, limit: int,
+                                                           expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         create_tables(postgresdb_engine)
@@ -272,13 +225,13 @@ def test_get_persons_should_return_401_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(phone_number_type_routes, 'phone_number_type_provider', phone_number_type_provider)
 
-        for pdb in persons_db:
-            person_provider.insert_person(pdb)
+        for pntdb in phone_number_types_db:
+            phone_number_type_provider.insert_phone_number_type(pntdb)
 
         # Act
-        response = client.get("/get_persons",
+        response = client.get("/get_phone_number_types",
                               params={'filters': filters,
                                       'order_by': order_by, 'order_type': order_type,
                                       'offset': offset, 'limit': limit})
