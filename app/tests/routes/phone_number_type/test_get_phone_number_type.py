@@ -7,14 +7,14 @@ from starlette.testclient import TestClient
 from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, Person, \
+from app.models import ResponseMessage, AWFAPIRegisteredUser, PhoneNumberTypeInput, PhoneNumberType, \
     E401Unauthorized, E404NotFound
-from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
+from app.providers import AWFAPIUserProvider, PhoneNumberTypeProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
 from app.routes import jwt_authentication as jwt_authentication_routes
 from app.routes import awfapi_user as awfapi_user_routes
-from app.routes import person as person_routes
+from app.routes import phone_number_type as phone_number_type_routes
 from app import oauth2_handlers
 
 from app.tests.fixtures.fixtures_tests import (register_test_user, obtain_access_token,
@@ -38,13 +38,8 @@ jwt_authentication_service: JWTAuthenticationService = JWTAuthenticationService(
 
 postgresdb_connection_string: str = PostgresdbConnectionConfig.get_db_connection_string(test_suffix="_test")
 postgresdb_engine: sqlalchemy.engine.Engine = create_engine(postgresdb_connection_string)
-business_entity_provider: BusinessEntityProvider = BusinessEntityProvider(
+phone_number_type_provider: PhoneNumberTypeProvider = PhoneNumberTypeProvider(
     connection_string=postgresdb_connection_string,
-    db_engine=postgresdb_engine
-)
-person_provider: PersonProvider = PersonProvider(
-    connection_string=postgresdb_connection_string,
-    business_entity_provider=business_entity_provider,
     db_engine=postgresdb_engine
 )
 
@@ -65,29 +60,24 @@ awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="test
                                                                   repeated_password="testpassword",
                                                                   full_name="Test AWFAPIUserInput",
                                                                   email="test.user@test.user", is_readonly=True)
-persons_db: List[PersonInput] = [
-    PersonInput(person_type=EPersonType.GC, first_name="John", last_name="Doe"),
-    PersonInput(person_type=EPersonType.EM, first_name="John", last_name="Smith"),
-    PersonInput(person_type=EPersonType.IN, first_name="John", last_name="Adams"),
-    PersonInput(person_type=EPersonType.VC, first_name="John", middle_name="K", last_name="Adams"),
-    PersonInput(person_type=EPersonType.SP, first_name="John", middle_name="J", last_name="Adams"),
-    PersonInput(person_type=EPersonType.GC, first_name="Brian", last_name="Washer"),
-    PersonInput(person_type=EPersonType.SC, first_name="Aaron", last_name="Dasmi"),
-    PersonInput(person_type=EPersonType.SC, first_name="Aaron", last_name="Washington"),
-    PersonInput(person_type=EPersonType.SC, first_name="Sharon", last_name="Smith"),
-    PersonInput(person_type=EPersonType.SC, first_name="Claire", last_name="Smith"),
+phone_number_types_db: List[PhoneNumberTypeInput] = [
+    PhoneNumberTypeInput(name="Cell"),
+    PhoneNumberTypeInput(name="Mobile"),
+    PhoneNumberTypeInput(name="Home"),
+    PhoneNumberTypeInput(name="Home 2"),
+    PhoneNumberTypeInput(name="Home em."),
 ]
 
 
-@pytest.mark.parametrize("awfapi_registered_user, person_id, expected_person", [
-    (awfapi_nonreadonly_user, 0, persons_db[0]),
-    (awfapi_nonreadonly_user, 3, persons_db[3]),
-    (awfapi_readonly_user, 7, persons_db[7])
+@pytest.mark.parametrize("awfapi_registered_user, phone_number_type_id, expected_phone_number_type", [
+    (awfapi_nonreadonly_user, 0, phone_number_types_db[0]),
+    (awfapi_nonreadonly_user, 2, phone_number_types_db[2]),
+    (awfapi_readonly_user, 4, phone_number_types_db[4])
 ])
-def test_get_person_should_return_200_response(client, monkeypatch,
-                                               awfapi_registered_user: AWFAPIRegisteredUser,
-                                               person_id: int,
-                                               expected_person: PersonInput) -> None:
+def test_get_phone_number_type_should_return_200_response(client, monkeypatch,
+                                                          awfapi_registered_user: AWFAPIRegisteredUser,
+                                                          phone_number_type_id: int,
+                                                          expected_phone_number_type: PhoneNumberTypeInput) -> None:
     try:
         # Arrange
         create_tables(postgresdb_engine)
@@ -97,32 +87,23 @@ def test_get_person_should_return_200_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(phone_number_type_routes, 'phone_number_type_provider', phone_number_type_provider)
 
-        person_db_ids = list([person_provider.insert_person(pdb) for pdb in persons_db])
+        phone_number_type_db_ids = list([phone_number_type_provider.insert_phone_number_type(pntdb)
+                                         for pntdb in phone_number_types_db])
         register_test_user(awfapi_user_service, awfapi_registered_user)
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.get(f"/get_person/{person_db_ids[person_id]}",
+        response = client.get(f"/get_phone_number_type/{phone_number_type_db_ids[phone_number_type_id]}",
                               headers={'Authorization': f"Bearer {access_token}"})
 
         # Assert
         assert response.status_code == status.HTTP_200_OK
-        person = Person(**response.json())
-        assert person.business_entity_id is not None
-        assert person.person_type == expected_person.person_type
-        assert person.name_style == expected_person.name_style
-        assert person.title == expected_person.title
-        assert person.first_name == expected_person.first_name
-        assert person.middle_name == expected_person.middle_name
-        assert person.last_name == expected_person.last_name
-        assert person.suffix == expected_person.suffix
-        assert person.email_promotion == expected_person.email_promotion
-        assert person.additional_contact_info == expected_person.additional_contact_info
-        assert person.demographics == expected_person.demographics
-        assert person.rowguid is not None
-        assert person.modified_date is not None
+        phone_numer_type = PhoneNumberType(**response.json())
+        assert phone_numer_type.phone_number_type_id is not None
+        assert phone_numer_type.name == expected_phone_number_type.name
+        assert phone_numer_type.modified_date is not None
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
@@ -133,15 +114,15 @@ def test_get_person_should_return_200_response(client, monkeypatch,
         drop_tables(postgresdb_engine)
 
 
-@pytest.mark.parametrize("person_id, expected_message", [
+@pytest.mark.parametrize("phone_number_type_id, expected_message", [
     (0, ResponseMessage(title="JWT token not provided or wrong encoded.",
                         description=f"{E401Unauthorized.INVALID_JWT_TOKEN}: "
                                     f"User did not provide or the JWT token is wrongly encoded.",
                         code=status.HTTP_401_UNAUTHORIZED))
 ])
-def test_get_person_should_return_401_response(client, monkeypatch,
-                                               person_id: int,
-                                               expected_message: ResponseMessage) -> None:
+def test_get_phone_number_type_should_return_401_response(client, monkeypatch,
+                                                          phone_number_type_id: int,
+                                                          expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         create_tables(postgresdb_engine)
@@ -151,12 +132,13 @@ def test_get_person_should_return_401_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(phone_number_type_routes, 'phone_number_type_provider', phone_number_type_provider)
 
-        person_db_ids = list([person_provider.insert_person(pdb) for pdb in persons_db])
+        phone_number_type_db_ids = list([phone_number_type_provider.insert_phone_number_type(pntdb)
+                                         for pntdb in phone_number_types_db])
 
         # Act
-        response = client.get(f"/get_person/{person_db_ids[person_id]}")
+        response = client.get(f"/get_phone_number_type/{phone_number_type_db_ids[phone_number_type_id]}")
 
         # Assert
         message = ResponseMessage(**response.json())
@@ -173,16 +155,16 @@ def test_get_person_should_return_401_response(client, monkeypatch,
         drop_tables(postgresdb_engine)
 
 
-@pytest.mark.parametrize("awfapi_registered_user, person_id, expected_message", [
+@pytest.mark.parametrize("awfapi_registered_user, phone_number_type_id, expected_message", [
     (awfapi_readonly_user, -1,
-     ResponseMessage(title="Entity 'Person' of id '-1' not found.",
-                     description=f"{E404NotFound.PERSON_NOT_FOUND}: Person of id '-1' does not exist.",
+     ResponseMessage(title="Entity 'Phone number type' of id '-1' not found.",
+                     description=f"{E404NotFound.PHONE_NUMBER_TYPE_NOT_FOUND}: Phone number type of id '-1' does not exist.",
                      code=status.HTTP_404_NOT_FOUND))
 ])
-def test_get_person_should_return_404_response(client, monkeypatch,
-                                               awfapi_registered_user: AWFAPIRegisteredUser,
-                                               person_id: int,
-                                               expected_message: ResponseMessage) -> None:
+def test_get_phone_number_type_should_return_404_response(client, monkeypatch,
+                                                          awfapi_registered_user: AWFAPIRegisteredUser,
+                                                          phone_number_type_id: int,
+                                                          expected_message: ResponseMessage) -> None:
     try:
         # Arrange
         create_tables(postgresdb_engine)
@@ -192,14 +174,15 @@ def test_get_person_should_return_404_response(client, monkeypatch,
         monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(phone_number_type_routes, 'phone_number_type_provider', phone_number_type_provider)
 
-        _ = list([person_provider.insert_person(pdb) for pdb in persons_db])
+        _ = list([phone_number_type_provider.insert_phone_number_type(pntdb) for pntdb in phone_number_types_db])
         register_test_user(awfapi_user_service, awfapi_registered_user)
         access_token = obtain_access_token(client, awfapi_registered_user)
 
         # Act
-        response = client.get(f"/get_person/{person_id}", headers={'Authorization': f"Bearer {access_token}"})
+        response = client.get(f"/get_phone_number_type/{phone_number_type_id}",
+                              headers={'Authorization': f"Bearer {access_token}"})
 
         # Assert
         message = ResponseMessage(**response.json()['detail'])

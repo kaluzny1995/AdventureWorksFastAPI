@@ -32,6 +32,13 @@
       "order_type": "asc",
       "offset": 0,
       "limit": 10
+    },
+    "phone_number_type": {
+      "filters": null,
+      "order_by": null,
+      "order_type": "asc",
+      "offset": 0,
+      "limit": 10
     }
   }
 }
