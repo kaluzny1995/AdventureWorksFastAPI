@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import Optional, List
 
 from app import errors
-from app.config import DefaultParamsConfig
+from app.config import DefaultQueryParamsConfig
 from app.models import EOrderType, AWFAPIUser, PersonInput, Person, CountMessage, ResponseMessage, get_response_models
 from app.providers import PersonProvider
 from app.services import PersonService
@@ -11,11 +11,11 @@ from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_422, raise_500
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
-default_params = DefaultParamsConfig.from_json(entity="person")
-person_provider = PersonProvider()
-person_service = PersonService()
+default_params: DefaultQueryParamsConfig = DefaultQueryParamsConfig.from_json(entity="person")
+person_provider: PersonProvider = PersonProvider()
+person_service: PersonService = PersonService()
 
 
 @router.get("/get_persons", tags=["Persons"],

@@ -9,9 +9,9 @@ from app.oauth2_handlers import oauth2_scheme, get_current_user, get_current_non
 from app.error_handlers import raise_401, raise_500
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
-jwt_auth_service = JWTAuthenticationService()
+jwt_auth_service: JWTAuthenticationService = JWTAuthenticationService()
 
 
 @router.post("/token", response_model=Token, include_in_schema=False,

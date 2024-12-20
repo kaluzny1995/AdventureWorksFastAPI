@@ -9,9 +9,9 @@ from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_500
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
-person_phone_provider = PersonPhoneProvider()
+person_phone_provider: PersonPhoneProvider = PersonPhoneProvider()
 
 
 @router.get("/get_person_phones", tags=["Person Phones"],

@@ -5,7 +5,7 @@ from typing import Optional
 from app.models import EOrderType
 
 
-class DefaultParamsConfig(BaseModel):
+class DefaultQueryParamsConfig(BaseModel):
     filters: Optional[str]
     order_by: Optional[str]
     order_type: EOrderType
@@ -16,7 +16,7 @@ class DefaultParamsConfig(BaseModel):
         frozen = True
 
     @staticmethod
-    def from_json(entity: str) -> 'DefaultParamsConfig':
+    def from_json(entity: str) -> 'DefaultQueryParamsConfig':
         with open("config.json", "r") as f:
-            config = DefaultParamsConfig(**json.load(f)['default_params'][entity])
+            config = DefaultQueryParamsConfig(**json.load(f)['default_query_params'][entity])
         return config

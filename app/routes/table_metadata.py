@@ -9,9 +9,9 @@ from app.oauth2_handlers import get_current_user
 from app.error_handlers import raise_404, raise_500
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
-table_metadata_provider = TableMetadataProvider()
+table_metadata_provider: TableMetadataProvider = TableMetadataProvider()
 
 
 @router.get("/table/names", tags=["Tables"],

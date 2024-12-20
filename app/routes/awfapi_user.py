@@ -12,10 +12,10 @@ from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_500
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
-awfapi_user_provider = AWFAPIUserProvider()
-awfapi_user_service = AWFAPIUserService()
+awfapi_user_provider: AWFAPIUserProvider = AWFAPIUserProvider()
+awfapi_user_service: AWFAPIUserService = AWFAPIUserService()
 
 
 @router.get("/all_awfapi_users", tags=["AWFAPI Users"],

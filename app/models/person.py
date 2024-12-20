@@ -4,8 +4,12 @@ from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime, ForeignKey
 from typing import Any, Optional
 
+from app.config import TableDetailsConfig
 from app.models import EPersonType, E422UnprocessableEntity, BusinessEntity
 from app import errors
+
+
+tdc: TableDetailsConfig = TableDetailsConfig.from_json(entity="person")
 
 
 class PersonInput(BaseModel):
@@ -53,22 +57,22 @@ class PersonInput(BaseModel):
 
 
 class Person(SQLModel, table=True):
-    business_entity_id: int = Field(sa_column=Column("BusinessEntityID", Integer, ForeignKey(BusinessEntity.business_entity_id), primary_key=True, nullable=False))
-    person_type: EPersonType = Field(sa_column=Column("PersonType", String, nullable=False))
-    name_style: str = Field(sa_column=Column("NameStyle", String, default="0", nullable=False))
-    title: Optional[str] = Field(sa_column=Column("Title", String, nullable=True))
-    first_name: str = Field(sa_column=Column("FirstName", String, nullable=False))
-    middle_name: Optional[str] = Field(sa_column=Column("MiddleName", String, nullable=True))
-    last_name: str = Field(sa_column=Column("LastName", String, nullable=False))
-    suffix: Optional[str] = Field(sa_column=Column("Suffix", String, nullable=True))
-    email_promotion: int = Field(sa_column=Column("EmailPromotion", Integer, default=0, nullable=False), ge=0, le=2)
-    additional_contact_info: Optional[str] = Field(sa_column=Column("AdditionalContactInfo", String, nullable=True))
-    demographics: Optional[str] = Field(sa_column=Column("Demographics", String, nullable=True))
-    rowguid: uuid.UUID = Field(sa_column=Column("rowguid", String, default=uuid.uuid4, nullable=False))
-    modified_date: dt.datetime = Field(sa_column=Column("ModifiedDate", DateTime, default=dt.datetime.utcnow, nullable=False))
+    business_entity_id: int = Field(sa_column=Column(tdc.columns[0], Integer, ForeignKey(BusinessEntity.business_entity_id), primary_key=True, nullable=False))
+    person_type: EPersonType = Field(sa_column=Column(tdc.columns[1], String, nullable=False))
+    name_style: str = Field(sa_column=Column(tdc.columns[2], String, default="0", nullable=False))
+    title: Optional[str] = Field(sa_column=Column(tdc.columns[3], String, nullable=True))
+    first_name: str = Field(sa_column=Column(tdc.columns[4], String, nullable=False))
+    middle_name: Optional[str] = Field(sa_column=Column(tdc.columns[5], String, nullable=True))
+    last_name: str = Field(sa_column=Column(tdc.columns[6], String, nullable=False))
+    suffix: Optional[str] = Field(sa_column=Column(tdc.columns[7], String, nullable=True))
+    email_promotion: int = Field(sa_column=Column(tdc.columns[8], Integer, default=0, nullable=False), ge=0, le=2)
+    additional_contact_info: Optional[str] = Field(sa_column=Column(tdc.columns[9], String, nullable=True))
+    demographics: Optional[str] = Field(sa_column=Column(tdc.columns[10], String, nullable=True))
+    rowguid: uuid.UUID = Field(sa_column=Column(tdc.columns[11], String, default=uuid.uuid4, nullable=False))
+    modified_date: dt.datetime = Field(sa_column=Column(tdc.columns[12], DateTime, default=dt.datetime.utcnow, nullable=False))
 
-    __tablename__ = "Person"
-    __table_args__ = {'schema': "Person"}
+    __tablename__ = tdc.table
+    __table_args__ = {'schema': tdc.schema_name}
 
     class Config:
         schema_extra = {

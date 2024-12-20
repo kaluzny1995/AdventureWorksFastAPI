@@ -3,8 +3,12 @@ from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime
 from typing import Any
 
+from app.config import TableDetailsConfig
 from app.models import E422UnprocessableEntity
 from app import errors
+
+
+tdc: TableDetailsConfig = TableDetailsConfig.from_json(entity="phone_number_type")
 
 
 class PhoneNumberTypeInput(BaseModel):
@@ -32,12 +36,12 @@ class PhoneNumberTypeInput(BaseModel):
 
 
 class PhoneNumberType(SQLModel, table=True):
-    phone_number_type_id: int = Field(sa_column=Column("PhoneNumberTypeID", Integer, primary_key=True, nullable=False))
-    name: str = Field(sa_column=Column("Name", String, nullable=False))
-    modified_date: dt.datetime = Field(sa_column=Column("ModifiedDate", DateTime, default=dt.datetime.utcnow, nullable=False))
+    phone_number_type_id: int = Field(sa_column=Column(tdc.columns[0], Integer, primary_key=True, nullable=False))
+    name: str = Field(sa_column=Column(tdc.columns[1], String, nullable=False))
+    modified_date: dt.datetime = Field(sa_column=Column(tdc.columns[2], DateTime, default=dt.datetime.utcnow, nullable=False))
 
-    __tablename__ = "PhoneNumberType"
-    __table_args__ = {'schema': "Person"}
+    __tablename__ = tdc.table
+    __table_args__ = {'schema': tdc.schema_name}
 
     class Config:
         schema_extra = {

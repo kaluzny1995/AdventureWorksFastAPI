@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import Optional, List
 
 from app import errors
-from app.config import DefaultParamsConfig
+from app.config import DefaultQueryParamsConfig
 from app.models import (EOrderType, AWFAPIUser, PhoneNumberTypeInput, PhoneNumberType,
                         CountMessage, ResponseMessage, get_response_models)
 from app.providers import PhoneNumberTypeProvider
@@ -11,10 +11,10 @@ from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_422, raise_500
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
-default_params = DefaultParamsConfig.from_json(entity="phone_number_type")
-phone_number_type_provider = PhoneNumberTypeProvider()
+default_params: DefaultQueryParamsConfig = DefaultQueryParamsConfig.from_json(entity="phone_number_type")
+phone_number_type_provider: PhoneNumberTypeProvider = PhoneNumberTypeProvider()
 
 
 @router.get("/get_phone_number_types", tags=["Phone Number Types"],

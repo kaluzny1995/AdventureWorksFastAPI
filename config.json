@@ -25,7 +25,7 @@
     "algorithm": "HS256",
     "access_token_expire_minutes": 30
   },
-  "default_params": {
+  "default_query_params": {
     "person": {
       "filters": null,
       "order_by": null,
@@ -39,6 +39,47 @@
       "order_type": "asc",
       "offset": 0,
       "limit": 10
+    }
+  },
+  "table_details": {
+    "business_entity": {
+      "schema_name": "Person",
+      "table": "BusinessEntity",
+      "columns": [
+        "BusinessEntityID", "rowguid", "ModifiedDate"
+      ],
+      "keys": {
+        "primary": ["BusinessEntityID"]
+      }
+    },
+    "person": {
+      "schema_name": "Person",
+      "table": "Person",
+      "columns": [
+        "BusinessEntityID", "PersonType", "NameStyle", "Title",
+        "FirstName", "MiddleName", "LastName", "Suffix", "EmailPromotion",
+        "AdditionalContactInfo", "Demographics", "rowguid", "ModifiedDate"
+      ],
+      "keys": {
+        "primary": ["BusinessEntityID"],
+        "foreign": {
+          "business_entity": {
+            "columns": ["BusinessEntityID"],
+            "schema_name": "Person",
+            "table": "BusinessEntity"
+          }
+        }
+      }
+    },
+    "phone_number_type": {
+      "schema_name": "Person",
+      "table": "PhoneNumberType",
+      "columns": [
+        "PhoneNumberTypeID", "Name", "ModifiedDate"
+      ],
+      "keys": {
+        "primary": ["PhoneNumberTypeID"]
+      }
     }
   }
 }

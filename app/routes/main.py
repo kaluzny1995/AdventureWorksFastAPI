@@ -3,7 +3,7 @@ from fastapi import APIRouter, status
 from app.models import ResponseMessage
 
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
 
 @router.get("/", include_in_schema=False)
