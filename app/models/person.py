@@ -1,10 +1,10 @@
 import uuid
 import datetime as dt
 from pydantic import BaseModel, validate_model
-from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime
+from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime, ForeignKey
 from typing import Any, Optional
 
-from app.models import EPersonType, E422UnprocessableEntity
+from app.models import EPersonType, E422UnprocessableEntity, BusinessEntity
 from app import errors
 
 
@@ -53,7 +53,7 @@ class PersonInput(BaseModel):
 
 
 class Person(SQLModel, table=True):
-    business_entity_id: int = Field(sa_column=Column("BusinessEntityID", Integer, primary_key=True, nullable=False))
+    business_entity_id: int = Field(sa_column=Column("BusinessEntityID", Integer, ForeignKey(BusinessEntity.business_entity_id), primary_key=True, nullable=False))
     person_type: EPersonType = Field(sa_column=Column("PersonType", String, nullable=False))
     name_style: str = Field(sa_column=Column("NameStyle", String, default="0", nullable=False))
     title: Optional[str] = Field(sa_column=Column("Title", String, nullable=True))

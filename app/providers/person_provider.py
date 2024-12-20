@@ -51,7 +51,7 @@ class PersonProvider(IPersonProvider):
 
     def count_persons(self, filters: Optional[str] = None) -> int:
         with Session(self.db_engine) as db_session:
-            statement = select(sqlalchemy.func.count(Person.business_entity_id))
+            statement = select(sqlalchemy.func.count()).select_from(Person)
             if filters is not None:
                 person_db_filter = PersonDbFilter.from_filter_string(filters)
                 statement = person_db_filter.filter_persons(statement)

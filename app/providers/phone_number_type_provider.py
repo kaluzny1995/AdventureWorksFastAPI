@@ -47,7 +47,7 @@ class PhoneNumberTypeProvider(IPhoneNumberTypeProvider):
 
     def count_phone_number_types(self, filters: Optional[str] = None) -> int:
         with Session(self.db_engine) as db_session:
-            statement = select(sqlalchemy.func.count(PhoneNumberType.phone_number_type_id))
+            statement = select(sqlalchemy.func.count()).select_from(PhoneNumberType)
             if filters is not None:
                 phone_number_type_db_filter = PhoneNumberTypeDbFilter.from_filter_string(filters)
                 statement = phone_number_type_db_filter.filter_phone_number_types(statement)

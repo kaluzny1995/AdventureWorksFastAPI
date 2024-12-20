@@ -42,7 +42,7 @@ def get_phone_number_types(filters: Optional[str] = default_params.filters,
 
 
 @router.get("/count_phone_number_types", tags=["Phone Number Types"],
-            responses=get_response_models(List[PhoneNumberType], [200, 400, 401, 500]))
+            responses=get_response_models(CountMessage, [200, 400, 401, 500]))
 def count_phone_number_types(filters: Optional[str] = default_params.filters,
                              _: AWFAPIUser = Depends(get_current_user)) -> CountMessage:
     if filters == "":

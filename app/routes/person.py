@@ -42,7 +42,7 @@ def get_persons(filters: Optional[str] = default_params.filters,
 
 
 @router.get("/count_persons", tags=["Persons"],
-            responses=get_response_models(List[Person], [200, 400, 401, 500]))
+            responses=get_response_models(CountMessage, [200, 400, 401, 500]))
 def count_persons(filters: Optional[str] = default_params.filters,
                   _: AWFAPIUser = Depends(get_current_user)) -> CountMessage:
     if filters == "":
