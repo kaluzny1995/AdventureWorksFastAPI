@@ -1,16 +1,23 @@
 from typing import Optional, List, Tuple
 
-from app.models import PersonPhone, PersonPhoneInput
+from app.models import EOrderType, Person, PhoneNumberType, PersonPhone, PersonPhoneInput
 
 
 class IPersonPhoneProvider:
     """ Interface of person phone provider """
 
-    def get_person_phones(self, limit: Optional[int], offset: Optional[int]) -> List[PersonPhone]:
-        """ Returns list of all person phones """
+    def get_person_phones(self, filters: Optional[str] = None,
+                          order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
+                          limit: Optional[int] = None, offset: Optional[int] = None
+                          ) -> List[Tuple[PersonPhone, Person, PhoneNumberType]]:
+        """ Returns list of appropriate person phones with its person and phone number type """
         raise NotImplementedError
 
-    def get_person_phone(self, person_phone_id: Tuple[int, str, int]) -> PersonPhone:
+    def count_person_phones(self, filters: Optional[str] = None) -> int:
+        """ Returns count of appropriate person phones """
+        raise NotImplementedError
+
+    def get_person_phone(self, person_phone_id: Tuple[int, str, int]) -> Tuple[PersonPhone, Person, PhoneNumberType]:
         """ Returns person phone of given person_phone_id """
         raise NotImplementedError
 

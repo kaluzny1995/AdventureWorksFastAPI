@@ -29,14 +29,14 @@ def raise_400(e: Exception):
                                                          f"Value '{value}' for field '{field}' already exists.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Unique constraint violation."})
 
     elif e_400_code == E400BadRequest.INVALID_SQL_VALUE:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Invalid value for SQL clause.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Invalid value for SQL clause."})
 
     elif e_400_code == E400BadRequest.READONLY_ACCESS_FOR_USER:
         username = utils.get_username_from_message(e_message)
@@ -44,14 +44,24 @@ def raise_400(e: Exception):
                             detail=ResponseMessage(title=f"Readonly access for '{username}'.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Attempt of readonly access violation."})
 
     elif e_400_code == E400BadRequest.WRONG_CURRENT_PASSWORD:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title=f"Wrong current password.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Wrong current password."})
+
+    elif e_400_code == E400BadRequest.PRIMARY_KEY_CONSTRAINT_VIOLATION:
+        primary_key_details = utils.get_primary_key_violence_details(e_message)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Primary key constraint violation. "
+                                                         f"Primary key '{primary_key_details.key_column}'="
+                                                         f"({primary_key_details.key_value}) does not exist.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": "Primary key constraint violation."})
 
     elif e_400_code == E400BadRequest.FOREIGN_KEY_CONSTRAINT_VIOLATION:
         foreign_key_details = utils.get_foreign_key_violence_details(e_message)
@@ -62,42 +72,42 @@ def raise_400(e: Exception):
                                                          f"({foreign_key_details.key_value}) does not exist.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Foreign key constraint violation."})
 
     elif e_400_code == E400BadRequest.INVALID_FILTER_STRING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Invalid filter string.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Invalid filter string."})
 
     elif e_400_code == E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Non-existing fields in filter string.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Non-existing fields in filter string."})
 
     elif e_400_code == E400BadRequest.VALUES_NOT_PROVIDED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Missing values.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Missing values."})
 
     elif e_400_code == E400BadRequest.INVALID_ORDERING_COLUMN_NAME:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Non-existing column for ordering.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Non-existing column for ordering."})
 
     elif e_400_code == E400BadRequest.ORDERING_NOT_SUPPORTED_FOR_COLUMN:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Unsupported ordering for this data type.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
-                            headers={"description": e_message})
+                            headers={"description": "Unsupported ordering for this data type."})
 
     else:
         raise_500(e)
@@ -110,7 +120,7 @@ def raise_401(e: Exception):
         detail=ResponseMessage(title="Not authorized.",
                                description=str(e),
                                code=status.HTTP_401_UNAUTHORIZED).dict(),
-        headers={"description": str(e)}
+        headers={"description": "Not authorized."}
     )
 
 
@@ -121,13 +131,13 @@ def raise_404(e: Exception, entity: str, entity_id: object, info: Optional[str] 
                             detail=ResponseMessage(title=f"{info} | {detail}",
                                                    description=str(e),
                                                    code=status.HTTP_404_NOT_FOUND).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": "Entity not found."})
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=ResponseMessage(title=f"Entity '{entity}' of id '{entity_id}' not found.",
                                                    description=str(e),
                                                    code=status.HTTP_404_NOT_FOUND).dict(),
-                            headers={"description": str(e)})
+                            headers={"description": "Entity not found."})
 
 
 def raise_422(e: Exception):
@@ -137,7 +147,7 @@ def raise_422(e: Exception):
                         detail=ResponseMessage(title=f"Pydantic validation error: {title} | {details}",
                                                description=str(e),
                                                code=status.HTTP_422_UNPROCESSABLE_ENTITY).dict(),
-                        headers={"description": str(e)})
+                        headers={"description": "Pydantic validation error."})
 
 
 def raise_500(e: Exception):
@@ -146,7 +156,7 @@ def raise_500(e: Exception):
                         detail=ResponseMessage(title="Internal error occurred.",
                                                description=f"An internal error occurred: {str(e)}",
                                                code=status.HTTP_500_INTERNAL_SERVER_ERROR).dict(),
-                        headers={"description": str(e)})
+                        headers={"description": "Internal error occurred."})
 
 
 async def custom_http_error_handler(request: Request, exc: StarletteHTTPException) -> Response:
