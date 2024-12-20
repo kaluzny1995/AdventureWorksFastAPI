@@ -29,6 +29,19 @@ class ResponseMessage(BaseModel):
         }
 
 
+class PrimaryKeyErrorDetails(BaseModel):
+    key_column: str
+    key_value: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "key_column": "\"BusinessEntityID\", \"PhoneNumber\", \"PhoneNumberTypeID\"",
+                "key_value": "20789, 001 002 003, 5"
+            }
+        }
+
+
 class ForeignKeyErrorDetails(BaseModel):
     entity: str
     key_column: str
