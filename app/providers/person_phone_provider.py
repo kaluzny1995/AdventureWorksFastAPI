@@ -6,7 +6,7 @@ from sqlmodel.sql.expression import SelectOfScalar
 from typing import Optional, List, Tuple, Dict, Union, ClassVar
 
 from app import utils, errors
-from app.config import PostgresdbConnectionConfig
+from app.config import PostgresdbConnectionConfig, TableDetailsConfig
 from app.providers import IPersonPhoneProvider
 from app.models import (EConstraintViolation, EOrderType, Person, PhoneNumberType, PersonPhone, PersonPhoneInput,
                         E400BadRequest, E404NotFound)
@@ -45,8 +45,8 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                 statement = statement.limit(limit)
 
             statement = statement\
-                .join(Person, onclause=text("\"Person\".\"PersonPhone\".\"BusinessEntityID\"=\"Person\".\"Person\".\"BusinessEntityID\""))\
-                .join(PhoneNumberType, onclause=text("\"Person\".\"PersonPhone\".\"PhoneNumberTypeID\"=\"Person\".\"PhoneNumberType\".\"PhoneNumberTypeID\""))
+                .join(Person, onclause=text(TableDetailsConfig.get_foreign_key_join_condition("person_phone", "person")))\
+                .join(PhoneNumberType, onclause=text(TableDetailsConfig.get_foreign_key_join_condition("person_phone", "phone_number_type")))
             person_phones = db_session.execute(statement).all()
         person_phones = list(map(lambda p: (p[0], p[1], p[2]), person_phones))
         return person_phones
@@ -68,8 +68,8 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                                        PersonPhone.phone_number_type_id == person_phone_id[2]))
 
             statement = statement\
-                .join(Person, onclause=text("\"Person\".\"PersonPhone\".\"BusinessEntityID\"=\"Person\".\"Person\".\"BusinessEntityID\""))\
-                .join(PhoneNumberType, onclause=text("\"Person\".\"PersonPhone\".\"PhoneNumberTypeID\"=\"Person\".\"PhoneNumberType\".\"PhoneNumberTypeID\""))
+                .join(Person, onclause=text(TableDetailsConfig.get_foreign_key_join_condition("person_phone", "person")))\
+                .join(PhoneNumberType, onclause=text(TableDetailsConfig.get_foreign_key_join_condition("person_phone", "phone_number_type")))
             person_phone = db_session.execute(statement).first()
         if person_phone is None:
             raise errors.NotFoundError(f"{E404NotFound.PERSON_PHONE_NOT_FOUND}: "

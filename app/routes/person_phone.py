@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from typing import Optional, Tuple, List
 
 from app import errors
-from app.config import DefaultParamsConfig
+from app.config import DefaultQueryParamsConfig
 from app.models import (EOrderType, AWFAPIUser, PhoneNumberType, Person, PersonPhoneInput, PersonPhone,
                         CountMessage, ResponseMessage, get_response_models)
 from app.providers import PersonPhoneProvider
@@ -13,7 +13,7 @@ from app.error_handlers import raise_400, raise_404, raise_422, raise_500
 
 router: APIRouter = APIRouter()
 
-default_params: DefaultParamsConfig = DefaultParamsConfig.from_json(entity="person_phone")
+default_params: DefaultQueryParamsConfig = DefaultQueryParamsConfig.from_json(entity="person_phone")
 person_phone_provider: PersonPhoneProvider = PersonPhoneProvider()
 
 

@@ -58,7 +58,7 @@ def raise_400(e: Exception):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=ResponseMessage(title="Primary key constraint violation. "
                                                          f"Primary key '{primary_key_details.key_column}'="
-                                                         f"({primary_key_details.key_value}) does not exist.",
+                                                         f"({primary_key_details.key_value}) already exists.",
                                                    description=e_message,
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": "Primary key constraint violation."})

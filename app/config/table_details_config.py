@@ -36,11 +36,11 @@ class TableDetailsConfig(BaseModel):
         return config
 
     def get_primary_key_strings(self) -> List[str]:
-        return list(map(lambda k: f"{self.schema_name}.{self.table}.{k}", self.keys.primary))
+        return list(map(lambda k: f"\"{self.schema_name}\".\"{self.table}\".\"{k}\"", self.keys.primary))
 
     def get_foreign_key_strings(self, joined_entity: str) -> List[str]:
         fk = self.keys.foreign[joined_entity]
-        return list(map(lambda k: f"{fk.schema_name}.{fk.table}.{k}", fk.columns))
+        return list(map(lambda k: f"\"{fk.schema_name}\".\"{fk.table}\".\"{k}\"", fk.columns))
 
     @staticmethod
     def get_foreign_key_join_condition(entity: str, joined_entity: str) -> str:

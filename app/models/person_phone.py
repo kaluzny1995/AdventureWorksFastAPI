@@ -3,8 +3,12 @@ from pydantic import BaseModel, validate_model
 from sqlmodel import SQLModel, Field, Column, Integer, String, DateTime, ForeignKey
 from typing import Any
 
+from app.config import TableDetailsConfig
 from app.models import E422UnprocessableEntity, BusinessEntity, PhoneNumberType
 from app import errors
+
+
+tdc: TableDetailsConfig = TableDetailsConfig.from_json(entity="person_phone")
 
 
 class PersonPhoneInput(BaseModel):
@@ -38,13 +42,13 @@ class PersonPhoneInput(BaseModel):
 
 
 class PersonPhone(SQLModel, table=True):
-    business_entity_id: int = Field(sa_column=Column("BusinessEntityID", Integer, ForeignKey(BusinessEntity.business_entity_id), primary_key=True, nullable=False))
-    phone_number: str = Field(sa_column=Column("PhoneNumber", String, primary_key=True, nullable=False))
-    phone_number_type_id: int = Field(sa_column=Column("PhoneNumberTypeID", Integer, ForeignKey(PhoneNumberType.phone_number_type_id), primary_key=True, nullable=False))
-    modified_date: dt.datetime = Field(sa_column=Column("ModifiedDate", DateTime, default=dt.datetime.utcnow, nullable=False))
+    business_entity_id: int = Field(sa_column=Column(tdc.columns[0], Integer, ForeignKey(BusinessEntity.business_entity_id), primary_key=True, nullable=False))
+    phone_number: str = Field(sa_column=Column(tdc.columns[1], String, primary_key=True, nullable=False))
+    phone_number_type_id: int = Field(sa_column=Column(tdc.columns[2], Integer, ForeignKey(PhoneNumberType.phone_number_type_id), primary_key=True, nullable=False))
+    modified_date: dt.datetime = Field(sa_column=Column(tdc.columns[3], DateTime, default=dt.datetime.utcnow, nullable=False))
 
-    __tablename__ = "PersonPhone"
-    __table_args__ = {'schema': "Person"}
+    __tablename__ = tdc.table
+    __table_args__ = {'schema': tdc.schema_name}
 
     class Config:
         schema_extra = {

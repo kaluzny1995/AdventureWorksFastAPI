@@ -73,7 +73,7 @@
           "business_entity": {
             "columns": ["BusinessEntityID"],
             "schema_name": "Person",
-            "table": "BusinessEntity"
+            "table": "Person"
           }
         }
       }
@@ -86,6 +86,28 @@
       ],
       "keys": {
         "primary": ["PhoneNumberTypeID"]
+      }
+    },
+    "person_phone": {
+      "schema_name": "Person",
+      "table": "PersonPhone",
+      "columns": [
+        "BusinessEntityID", "PhoneNumber", "PhoneNumberTypeID", "ModifiedDate"
+      ],
+      "keys": {
+        "primary": ["BusinessEntityID", "PhoneNumber", "PhoneNumberTypeID"],
+        "foreign": {
+          "person": {
+            "columns": ["BusinessEntityID"],
+            "schema_name": "Person",
+            "table": "PersonPhone"
+          },
+          "phone_number_type": {
+            "columns": ["PhoneNumberTypeID"],
+            "schema_name": "Person",
+            "table": "PersonPhone"
+          }
+        }
       }
     }
   }
