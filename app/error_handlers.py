@@ -109,6 +109,13 @@ def raise_400(e: Exception):
                                                    code=status.HTTP_400_BAD_REQUEST).dict(),
                             headers={"description": "Unsupported ordering for this data type."})
 
+    elif e_400_code == E400BadRequest.EXISTING_DEPENDENT_ENTITY:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ResponseMessage(title="Existing dependent entity.",
+                                                   description=e_message,
+                                                   code=status.HTTP_400_BAD_REQUEST).dict(),
+                            headers={"description": "Existing dependent entity."})
+
     else:
         raise_500(e)
 

@@ -5,7 +5,7 @@ from app import errors
 from app.config import DefaultQueryParamsConfig
 from app.models import EOrderType, AWFAPIUser, PersonInput, Person, CountMessage, ResponseMessage, get_response_models
 from app.providers import PersonProvider
-from app.services import PersonService
+from app.services import PersonService, PersonPhoneService
 
 from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_422, raise_500
@@ -16,6 +16,7 @@ router: APIRouter = APIRouter()
 default_params: DefaultQueryParamsConfig = DefaultQueryParamsConfig.from_json(entity="person")
 person_provider: PersonProvider = PersonProvider()
 person_service: PersonService = PersonService()
+person_phone_service: PersonPhoneService = PersonPhoneService()
 
 
 @router.get("/get_persons", tags=["Persons"],
@@ -106,10 +107,13 @@ def update_person(person_id: int,
 def delete_person(person_id: int,
                   _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> ResponseMessage:
     try:
+        person_phone_service.has_person_person_phones(person_id)
         person_provider.delete_person(person_id)
         return ResponseMessage(title="Person deleted.",
                                description=f"Person of given id '{person_id}' deleted.",
                                code=status.HTTP_200_OK)
+    except errors.ExistingDependentEntityError as e:
+        raise_400(e)
     except errors.NotFoundError as e:
         raise_404(e, "Person", person_id)
     except Exception as e:
