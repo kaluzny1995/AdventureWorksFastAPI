@@ -9,8 +9,8 @@ from fastapi import status
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
 from app.models import ResponseMessage, AWFAPIRegisteredUser, EPersonType, PersonInput, \
     E400BadRequest, E401Unauthorized, E404NotFound
-from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider
-from app.services import JWTAuthenticationService, AWFAPIUserService
+from app.providers import AWFAPIUserProvider, BusinessEntityProvider, PersonProvider, PersonPhoneProvider
+from app.services import JWTAuthenticationService, AWFAPIUserService, PersonPhoneService
 
 from app.routes import jwt_authentication as jwt_authentication_routes
 from app.routes import awfapi_user as awfapi_user_routes
@@ -46,6 +46,13 @@ person_provider: PersonProvider = PersonProvider(
     connection_string=postgresdb_connection_string,
     business_entity_provider=business_entity_provider,
     db_engine=postgresdb_engine
+)
+
+person_phone_service: PersonPhoneService = PersonPhoneService(
+    person_phone_provider=PersonPhoneProvider(
+        connection_string=postgresdb_connection_string,
+        db_engine=postgresdb_engine
+    )
 )
 
 
@@ -102,6 +109,7 @@ def test_delete_person_should_return_200_response(client, monkeypatch,
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
         monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(person_routes, 'person_phone_service', person_phone_service)
 
         for pdb in persons_db:
             person_provider.insert_person(pdb)
@@ -114,6 +122,7 @@ def test_delete_person_should_return_200_response(client, monkeypatch,
                                  headers={'Authorization': f"Bearer {access_token}"})
 
         # Assert
+        print("Response:", response.json())
         message = ResponseMessage(**response.json())
         assert message.title == expected_message.title
         assert message.description == expected_message.description.replace("{}", str(person_id))
@@ -152,6 +161,7 @@ def test_delete_person_should_return_400_response(client, monkeypatch,
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
         monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(person_routes, 'person_phone_service', person_phone_service)
 
         for pdb in persons_db:
             person_provider.insert_person(pdb)
@@ -200,6 +210,7 @@ def test_delete_person_should_return_401_response(client, monkeypatch,
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
         monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(person_routes, 'person_phone_service', person_phone_service)
 
         for pdb in persons_db:
             person_provider.insert_person(pdb)
@@ -246,6 +257,7 @@ def test_delete_person_should_return_404_response(client, monkeypatch,
         monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
 
         monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+        monkeypatch.setattr(person_routes, 'person_phone_service', person_phone_service)
 
         for pdb in persons_db:
             person_provider.insert_person(pdb)

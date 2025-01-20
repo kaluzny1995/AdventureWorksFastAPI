@@ -90,6 +90,8 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                 raise errors.IntegrityError(f"{E400BadRequest.PRIMARY_KEY_CONSTRAINT_VIOLATION}: {str(e)}")
             elif EConstraintViolation.FOREIGN_KEY_VIOLATION in str(e):
                 raise errors.IntegrityError(f"{E400BadRequest.FOREIGN_KEY_CONSTRAINT_VIOLATION}: {str(e)}")
+            else:
+                raise e
 
     def update_person_phone(self, person_phone_id: Tuple[int, str, int],
                             person_phone_input: PersonPhoneInput) -> Tuple[int, str, int]:
@@ -109,6 +111,8 @@ class PersonPhoneProvider(IPersonPhoneProvider):
                 raise errors.IntegrityError(f"{E400BadRequest.PRIMARY_KEY_CONSTRAINT_VIOLATION}: {str(e)}")
             elif EConstraintViolation.FOREIGN_KEY_VIOLATION in str(e):
                 raise errors.IntegrityError(f"{E400BadRequest.FOREIGN_KEY_CONSTRAINT_VIOLATION}: {str(e)}")
+            else:
+                raise e
 
     def delete_person_phone(self, person_phone_id: Tuple[int, str, int]) -> None:
         deleted_person_phone = self.get_person_phone(person_phone_id)[0]
