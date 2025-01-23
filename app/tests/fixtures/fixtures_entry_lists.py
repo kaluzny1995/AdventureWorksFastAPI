@@ -1,7 +1,16 @@
 from typing import List
 
-from app.models import PersonInput, EPersonType, PhoneNumberTypeInput, PersonPhoneInput
+from app.models import AWFAPIRegisteredUser, PersonInput, EPersonType, PhoneNumberTypeInput, PersonPhoneInput
 
+
+awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                     repeated_password="testpassword",
+                                                                     full_name="Test AWFAPIUserInput",
+                                                                     email="test.user@test.user", is_readonly=False)
+awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
+                                                                  repeated_password="testpassword",
+                                                                  full_name="Test AWFAPIUserInput",
+                                                                  email="test.user@test.user", is_readonly=True)
 
 persons_db: List[PersonInput] = [
     PersonInput(person_type=EPersonType.GC, first_name="John", last_name="Doe"),

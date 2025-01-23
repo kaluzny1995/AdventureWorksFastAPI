@@ -134,7 +134,7 @@ class PersonPhoneDbFilter(BaseModel):
             raise errors.FilterNotFoundError(
                 f"{E400BadRequest.INVALID_FIELDS_IN_FILTER_STRING}: "
                 f"Filter string contains fields: '{list(params.keys())}' "
-                f"some of which do not exist in person filtering fields: {list(PersonPhoneDbFilter.__fields__.keys())}.")
+                f"some of which do not exist in person phone filtering fields: {list(PersonPhoneDbFilter.__fields__.keys())}.")
 
         return PersonPhoneDbFilter(**params)
 

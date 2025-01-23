@@ -114,7 +114,7 @@ def delete_person_phone(person_id: int, phone_number: str, phone_number_type_id:
     try:
         person_phone_provider.delete_person_phone(person_phone_id)
         return ResponseMessage(title="Person phone deleted.",
-                               description=f"Person phone of given id {person_phone_id} deleted.",
+                               description=f"Person phone of given id '{person_phone_id}' deleted.",
                                code=status.HTTP_200_OK)
     except errors.NotFoundError as e:
         raise_404(e, "Person phone", person_phone_id)
