@@ -22,6 +22,13 @@ def register_test_user(awfapi_user_service: AWFAPIUserService, awfapi_registered
     awfapi_user_service.register_awfapi_user(awfapi_registered_user)
 
 
+def obtain_access_token(client: TestClient, awfapi_registered_user: AWFAPIRegisteredUser) -> str:
+    response = client.post("/token", data={'username': awfapi_registered_user.username,
+                                           'password': awfapi_registered_user.password})
+    token = Token(**response.json())
+    return token.access_token
+
+
 def insert_test_persons(engine: sqlalchemy.engine.Engine, connection_string: str) -> None:
     person_provider = PersonProvider(connection_string, BusinessEntityProvider(connection_string, engine), engine)
     for person in persons_db:
@@ -38,13 +45,6 @@ def insert_test_person_phones(engine: sqlalchemy.engine.Engine, connection_strin
     person_phone_provider = PersonPhoneProvider(connection_string, engine)
     for person_phone in person_phones_db:
         person_phone_provider.insert_person_phone(person_phone)
-
-
-def obtain_access_token(client: TestClient, awfapi_registered_user: AWFAPIRegisteredUser) -> str:
-    response = client.post("/token", data={'username': awfapi_registered_user.username,
-                                           'password': awfapi_registered_user.password})
-    token = Token(**response.json())
-    return token.access_token
 
 
 def drop_collection(engine: pymongo.MongoClient, name: str) -> None:

@@ -1,16 +1,13 @@
 import pytest
-import pymongo
-import sqlalchemy
-from sqlmodel import create_engine
 from typing import Optional
 from starlette.testclient import TestClient
 from fastapi import status
+from pytest import MonkeyPatch
 
-from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
-from app.models import CountMessage, ResponseMessage, AWFAPIRegisteredUser, \
-    E400BadRequest, E401Unauthorized
-from app.providers import AWFAPIUserProvider, PersonPhoneProvider
-from app.services import JWTAuthenticationService, AWFAPIUserService
+from app.models import (CountMessage, ResponseMessage, AWFAPIRegisteredUser,
+                        E400BadRequest, E401Unauthorized)
+from app.factories import (MongoDBFactory, PostgresDBFactory, AWFAPIUserFactory, JWTAuthenticationFactory,
+                           PersonPhoneFactory)
 
 from app.routes import jwt_authentication as jwt_authentication_routes
 from app.routes import awfapi_user as awfapi_user_routes
@@ -24,27 +21,12 @@ from app.tests.fixtures.fixtures_tests import (register_test_user, obtain_access
                                                create_tables, drop_tables, drop_collection)
 
 
-mongodb_connection_string: str = MongodbConnectionConfig.get_db_connection_string()
-mongodb_collection_name: str = MongodbConnectionConfig.get_collection_name(test_suffix="_test")
-mongodb_engine: pymongo.MongoClient = pymongo.MongoClient(mongodb_connection_string)
-awfapi_user_provider: AWFAPIUserProvider = AWFAPIUserProvider(
-    connection_string=mongodb_connection_string,
-    collection_name=mongodb_collection_name,
-    db_engine=mongodb_engine
-)
-awfapi_user_service: AWFAPIUserService = AWFAPIUserService(awfapi_user_provider=awfapi_user_provider)
-jwt_authentication_service: JWTAuthenticationService = JWTAuthenticationService(
-    jwt_auth_config=JWTAuthenticationConfig.from_json(),
-    awfapi_user_provider=awfapi_user_provider,
-    awfapi_user_service=awfapi_user_service
-)
+mongodb_connection_string, mongodb_collection_name, mongodb_engine = MongoDBFactory.get_db_connection_details(test_suffix="_test")
+awfapi_user_provider, awfapi_user_service = AWFAPIUserFactory.get_provider_and_service(mongodb_connection_string, mongodb_collection_name, mongodb_engine)
+jwt_authentication_service = JWTAuthenticationFactory.get_service(awfapi_user_provider, awfapi_user_service)
 
-postgresdb_connection_string: str = PostgresdbConnectionConfig.get_db_connection_string(test_suffix="_test")
-postgresdb_engine: sqlalchemy.engine.Engine = create_engine(postgresdb_connection_string)
-person_phone_provider: PersonPhoneProvider = PersonPhoneProvider(
-    connection_string=postgresdb_connection_string,
-    db_engine=postgresdb_engine
-)
+postgresdb_connection_string, postgresdb_engine = PostgresDBFactory.get_db_connection_details(test_suffix="_test")
+person_phone_provider = PersonPhoneFactory.get_provider(postgresdb_connection_string, postgresdb_engine)
 
 
 @pytest.fixture()
@@ -53,6 +35,26 @@ def client():
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+def fixtures_before_test(monkeypatch: MonkeyPatch) -> None:
+    create_tables(postgresdb_engine)
+
+    monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
+    monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_service', awfapi_user_service)
+    monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
+    monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
+
+    monkeypatch.setattr(person_phone_routes, 'person_phone_provider', person_phone_provider)
+
+    insert_test_persons(postgresdb_engine, postgresdb_connection_string)
+    insert_test_phone_number_types(postgresdb_engine, postgresdb_connection_string)
+    insert_test_person_phones(postgresdb_engine, postgresdb_connection_string)
+
+
+def fixtures_after_test() -> None:
+    drop_collection(mongodb_engine, mongodb_collection_name)
+    drop_tables(postgresdb_engine)
 
 
 @pytest.mark.parametrize("awfapi_registered_user, filters, expected_message", [
@@ -68,20 +70,7 @@ def test_count_person_phones_should_return_200_response(client, monkeypatch,
                                                         expected_message: CountMessage) -> None:
     try:
         # Arrange
-        create_tables(postgresdb_engine)
-
-        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
-        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_service', awfapi_user_service)
-        monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
-        monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
-
-        monkeypatch.setattr(person_phone_routes, 'person_phone_provider', person_phone_provider)
-
-        # todo: move that to common method insert objects
-        insert_test_persons(postgresdb_engine, postgresdb_connection_string)
-        insert_test_phone_number_types(postgresdb_engine, postgresdb_connection_string)
-        insert_test_person_phones(postgresdb_engine, postgresdb_connection_string)
-
+        fixtures_before_test(monkeypatch)
         register_test_user(awfapi_user_service, awfapi_registered_user)
         access_token = obtain_access_token(client, awfapi_registered_user)
 
@@ -96,12 +85,10 @@ def test_count_person_phones_should_return_200_response(client, monkeypatch,
         assert message.count == expected_message.count
 
     except Exception as e:
-        drop_collection(mongodb_engine, mongodb_collection_name)
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
         raise e
     else:
-        drop_collection(mongodb_engine, mongodb_collection_name)
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
 
 
 @pytest.mark.parametrize("awfapi_registered_user, filters, expected_message", [
@@ -141,20 +128,7 @@ def test_count_person_phones_should_return_400_response(client, monkeypatch,
                                                         expected_message: ResponseMessage) -> None:
     try:
         # Arrange
-        create_tables(postgresdb_engine)
-
-        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
-        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_service', awfapi_user_service)
-        monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
-        monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
-
-        monkeypatch.setattr(person_phone_routes, 'person_phone_provider', person_phone_provider)
-
-        # todo: move that to common method insert objects
-        insert_test_persons(postgresdb_engine, postgresdb_connection_string)
-        insert_test_phone_number_types(postgresdb_engine, postgresdb_connection_string)
-        insert_test_person_phones(postgresdb_engine, postgresdb_connection_string)
-
+        fixtures_before_test(monkeypatch)
         register_test_user(awfapi_user_service, awfapi_registered_user)
         access_token = obtain_access_token(client, awfapi_registered_user)
 
@@ -169,12 +143,10 @@ def test_count_person_phones_should_return_400_response(client, monkeypatch,
         assert message.code == expected_message.code
 
     except Exception as e:
-        drop_collection(mongodb_engine, mongodb_collection_name)
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
         raise e
     else:
-        drop_collection(mongodb_engine, mongodb_collection_name)
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
 
 
 @pytest.mark.parametrize("filters, expected_message", [
@@ -189,19 +161,7 @@ def test_count_person_phones_should_return_401_response(client, monkeypatch,
                                                         expected_message: ResponseMessage) -> None:
     try:
         # Arrange
-        create_tables(postgresdb_engine)
-
-        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
-        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_service', awfapi_user_service)
-        monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
-        monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
-
-        monkeypatch.setattr(person_phone_routes, 'person_phone_provider', person_phone_provider)
-
-        # todo: move that to common method insert objects
-        insert_test_persons(postgresdb_engine, postgresdb_connection_string)
-        insert_test_phone_number_types(postgresdb_engine, postgresdb_connection_string)
-        insert_test_person_phones(postgresdb_engine, postgresdb_connection_string)
+        fixtures_before_test(monkeypatch)
 
         # Act
         response = client.get("/count_person_phones", params={'filters': filters})
@@ -213,9 +173,7 @@ def test_count_person_phones_should_return_401_response(client, monkeypatch,
         assert message.code == expected_message.code
 
     except Exception as e:
-        drop_collection(mongodb_engine, mongodb_collection_name)
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
         raise e
     else:
-        drop_collection(mongodb_engine, mongodb_collection_name)
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
