@@ -110,6 +110,18 @@ def adjust_filter_params(filter_params: Dict[str, str]) -> Dict[str, Union[int, 
     return params
 
 
+def get_endpoint_url_param_string(url: str) -> str:
+    """
+    Returns a part of url string with only the positional or optional parameters
+
+    Example url: /delete_person_phone/2//1
+
+    Should return: -1//-1
+    """
+
+    return "/".join(url.split("/")[2:])
+
+
 def get_username_from_message(error_message: str) -> str:
     """
     Returns parsed username from error message.

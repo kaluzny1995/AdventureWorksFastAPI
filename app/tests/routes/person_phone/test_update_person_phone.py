@@ -125,6 +125,14 @@ def test_update_person_phone_should_return_200_response(client, monkeypatch,
                      description=f"{E400BadRequest.READONLY_ACCESS_FOR_USER}: "
                                  f"[testuser] Current user 'testuser' has readonly restricted access.",
                      code=status.HTTP_400_BAD_REQUEST)),
+    (awfapi_readonly_user,
+     PersonPhoneInput(business_entity_id=2, phone_number="123456789", phone_number_type_id=1),
+     2, "", 1,
+     PersonPhoneInput(business_entity_id=2, phone_number="123456789", phone_number_type_id=2),
+     ResponseMessage(title="Empty string in positional parameter.",
+                     description=f"{E400BadRequest.EMPTY_STRING_IN_PARAMETER}: "
+                                 f"Each of the positional endpoint parameters cannot be empty string.",
+                     code=status.HTTP_400_BAD_REQUEST)),
     (awfapi_nonreadonly_user,
      PersonPhoneInput(business_entity_id=2, phone_number="123456789", phone_number_type_id=1),
      2, "123456789", 1,
@@ -189,7 +197,8 @@ def test_update_person_phone_should_return_400_response(client, monkeypatch,
                               headers={'Authorization': f"Bearer {access_token}"})
 
         # Assert
-        message = ResponseMessage(**response.json()['detail'])
+        json_object = response.json() if 'detail' not in response.json() else response.json()['detail']
+        message = ResponseMessage(**json_object)
         description = message.description if "SQL" not in message.description \
             else "\n".join(message.description.split("\n")[:-4])
 

@@ -168,6 +168,16 @@ def raise_500(e: Exception):
 
 async def custom_http_error_handler(request: Request, exc: StarletteHTTPException) -> Response:
     """ Handles each HTTP exception """
+    if "//" in utils.get_endpoint_url_param_string(request.url.path) and exc.detail == "Not Found":
+        # executed if user provides empty string in a positional endpoint parameter
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
+                            content=ResponseMessage(
+                                title="Empty string in positional parameter.",
+                                description=f"{E400BadRequest.EMPTY_STRING_IN_PARAMETER}: "
+                                            f"Each of the positional endpoint parameters cannot be empty string.",
+                                code=status.HTTP_400_BAD_REQUEST
+                            ).dict())
+
     if request.url.path == "/test" and exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # executed only for "/test" url endpoint, which checks the authentication status
         # if oauth2_scheme fails (i.e. JWT token is empty), then returns "Unauthenticated" description

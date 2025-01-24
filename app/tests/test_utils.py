@@ -70,6 +70,21 @@ def test_adjust_filter_params_should_raise_expected_error(params_dict: Dict[str,
         utils.adjust_filter_params(params_dict)
 
 
+@pytest.mark.parametrize("url, expected_url_part", [
+    ("/delete_person_phone/2//1", "2//1"),
+    ("/get_person_phone/2/000111222/1?p1=qwer", "2/000111222/1?p1=qwer"),
+    ("/get_person/2", "2"),
+    ("/get_person/2?p1=qwer", "2?p1=qwer")
+])
+def test_get_endpoint_url_param_string(url: str, expected_url_part: str) -> None:
+    # Arrange
+    # Act
+    url_part = utils.get_endpoint_url_param_string(url)
+
+    # Assert
+    assert url_part == expected_url_part
+
+
 @pytest.mark.parametrize("error_message, expected_username", [
     ("E400_000: [testuser] Current user 'testuser' has readonly restricted access.", "testuser"),
     ("E400_000: [testuser2] Current user 'testuser2' has readonly restricted access.", "testuser2"),

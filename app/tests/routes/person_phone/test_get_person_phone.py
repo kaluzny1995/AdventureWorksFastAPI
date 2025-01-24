@@ -7,7 +7,7 @@ from fastapi import status
 
 from app.config import JWTAuthenticationConfig, MongodbConnectionConfig, PostgresdbConnectionConfig
 from app.models import ResponseMessage, AWFAPIRegisteredUser, PersonPhoneInput, PersonPhone, \
-    E401Unauthorized, E404NotFound
+    E401Unauthorized, E404NotFound, E400BadRequest
 from app.providers import AWFAPIUserProvider, PersonPhoneProvider
 from app.services import JWTAuthenticationService, AWFAPIUserService
 
@@ -93,6 +93,56 @@ def test_get_person_phone_should_return_200_response(client, monkeypatch,
         assert person_phone.phone_number == expected_person_phone.phone_number
         assert person_phone.phone_number_type_id == expected_person_phone.phone_number_type_id
         assert person_phone.modified_date is not None
+
+    except Exception as e:
+        drop_collection(mongodb_engine, mongodb_collection_name)
+        drop_tables(postgresdb_engine)
+        raise e
+    else:
+        drop_collection(mongodb_engine, mongodb_collection_name)
+        drop_tables(postgresdb_engine)
+
+
+@pytest.mark.parametrize("awfapi_registered_user, person_id, phone_number, phone_number_type_id, expected_message", [
+    (awfapi_readonly_user, -1, "", -1,
+     ResponseMessage(title="Empty string in positional parameter.",
+                     description=f"{E400BadRequest.EMPTY_STRING_IN_PARAMETER}: "
+                                 f"Each of the positional endpoint parameters cannot be empty string.",
+                     code=status.HTTP_400_BAD_REQUEST))
+])
+def test_get_person_phone_should_return_400_response(client, monkeypatch,
+                                                     awfapi_registered_user: AWFAPIRegisteredUser,
+                                                     person_id: int, phone_number: str, phone_number_type_id: int,
+                                                     expected_message: ResponseMessage) -> None:
+    try:
+        # Arrange
+        create_tables(postgresdb_engine)
+
+        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_provider', awfapi_user_provider)
+        monkeypatch.setattr(awfapi_user_routes, 'awfapi_user_service', awfapi_user_service)
+        monkeypatch.setattr(jwt_authentication_routes, 'jwt_auth_service', jwt_authentication_service)
+        monkeypatch.setattr(oauth2_handlers, 'jwt_auth_service', jwt_authentication_service)
+
+        monkeypatch.setattr(person_phone_routes, 'person_phone_provider', person_phone_provider)
+
+        # todo: move that to common method insert objects
+        insert_test_persons(postgresdb_engine, postgresdb_connection_string)
+        insert_test_phone_number_types(postgresdb_engine, postgresdb_connection_string)
+        insert_test_person_phones(postgresdb_engine, postgresdb_connection_string)
+
+        register_test_user(awfapi_user_service, awfapi_registered_user)
+        access_token = obtain_access_token(client, awfapi_registered_user)
+
+        # Act
+        response = client.get(f"/get_person_phone/{person_id}/{phone_number}/{phone_number_type_id}",
+                              headers={'Authorization': f"Bearer {access_token}"})
+
+        # Assert
+        json_object = response.json() if 'detail' not in response.json() else response.json()['detail']
+        message = ResponseMessage(**json_object)
+        assert message.title == expected_message.title
+        assert message.description == expected_message.description
+        assert message.code == expected_message.code
 
     except Exception as e:
         drop_collection(mongodb_engine, mongodb_collection_name)
