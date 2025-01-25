@@ -12,9 +12,9 @@ class PersonPhoneProviderStub(IPersonPhoneProvider):
 
     def get_person_phones(self, filters: Optional[str] = None,
                     order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
-                    limit: Optional[int] = None, offset: Optional[int] = None):
+                    limit: Optional[int] = None, offset: Optional[int] = None) -> List[Tuple[PersonPhone, None, None]]:
         """ Returns list of appropriate person phones """
-        return self.data
+        return list(map(lambda d: tuple((d, None, None)), self.data))
 
     def count_person_phones(self, filters: Optional[str] = None) -> int:
         """ Returns count of appropriate person phones """
