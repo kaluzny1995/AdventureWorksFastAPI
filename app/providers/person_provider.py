@@ -26,12 +26,13 @@ class PersonProvider(IPersonProvider):
 
     def get_persons(self, filters: Optional[str] = None,
                     order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
-                    limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
+                    limit: Optional[int] = None, offset: Optional[int] = None,
+                    is_alternative: Optional[bool] = False) -> List[Person]:
         with Session(self.db_engine) as db_session:
             statement = select(Person)
             if filters is not None:
                 person_db_filter = PersonDbFilter.from_filter_string(filters)
-                statement = person_db_filter.filter_persons(statement)
+                statement = person_db_filter.filter_persons(statement, is_alternative)
             if order_by is not None:
                 person_db_order = PersonDbOrder(by=order_by, order=order_type)
                 statement = person_db_order.order_persons(statement)
@@ -114,16 +115,32 @@ class PersonDbFilter(BaseModel):
 
         return PersonDbFilter(**params)
 
-    def filter_persons(self, person_statement: SelectOfScalar[Person]) -> SelectOfScalar[Union[Person, int]]:
-        if self.person_type is not None:
-            person_statement = person_statement.where(Person.person_type == self.person_type)
-        if self.first_name_phrase is not None:
-            person_statement = person_statement.where(sqlalchemy.or_(
-                Person.first_name.ilike(f"%{self.first_name_phrase}%"),
-                Person.middle_name.ilike(f"%{self.first_name_phrase}%"))
-            )
-        if self.last_name_phrase is not None:
-            person_statement = person_statement.where(Person.last_name.ilike(f"%{self.last_name_phrase}%"))
+    def filter_persons(self, person_statement: SelectOfScalar[Person],
+                       is_alternative: Optional[bool] = False) -> SelectOfScalar[Union[Person, int]]:
+        if not is_alternative:
+            if self.person_type is not None:
+                person_statement = person_statement.where(Person.person_type == self.person_type)
+            if self.first_name_phrase is not None:
+                person_statement = person_statement.where(sqlalchemy.or_(
+                    Person.first_name.ilike(f"%{self.first_name_phrase}%"),
+                    Person.middle_name.ilike(f"%{self.first_name_phrase}%"),
+                    Person.suffix.ilike(f"%{self.first_name_phrase}%"),
+                    Person.title.ilike(f"%{self.first_name_phrase}%")
+                ))
+            if self.last_name_phrase is not None:
+                person_statement = person_statement.where(Person.last_name.ilike(f"%{self.last_name_phrase}%"))
+        else:
+            clauses = list([])
+            if self.person_type is not None:
+                clauses.append(Person.person_type == self.person_type)
+            if self.first_name_phrase is not None:
+                clauses.append(Person.first_name.ilike(f"%{self.first_name_phrase}%"))
+                clauses.append(Person.middle_name.ilike(f"%{self.first_name_phrase}%"))
+                clauses.append(Person.suffix.ilike(f"%{self.first_name_phrase}%"))
+                clauses.append(Person.title.ilike(f"%{self.first_name_phrase}%"))
+            if self.last_name_phrase is not None:
+                clauses.append(Person.last_name.ilike(f"%{self.last_name_phrase}%"))
+            person_statement = person_statement.where(sqlalchemy.or_(*clauses))
         return person_statement
 
 

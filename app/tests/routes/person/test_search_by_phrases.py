@@ -54,15 +54,17 @@ persons_db: List[PersonInput] = [
 ]
 
 
-@pytest.mark.parametrize("first_name_phrase, last_name_phrase, expected_persons", [
-    ("ria", "", [persons_db[5]]),
-    ("ron", "", [persons_db[6], persons_db[7], persons_db[8]]),
-    ("", "smi", [persons_db[1], persons_db[6], persons_db[8], persons_db[9]]),
-    ("ron", "smi", [persons_db[6], persons_db[8]])
+@pytest.mark.parametrize("first_name_phrase, last_name_phrase, is_alternative, expected_persons", [
+    ("ria", "", False, [persons_db[5]]),
+    ("ron", "", False, [persons_db[6], persons_db[7], persons_db[8]]),
+    ("", "smi", False, [persons_db[1], persons_db[6], persons_db[8], persons_db[9]]),
+    ("ron", "smi", False, [persons_db[6], persons_db[8]]),
+    ("rian", "shing", True, [persons_db[5], persons_db[7]])
 ])
 def test_search_by_phrases_should_return_200_response(client, monkeypatch,
                                                       first_name_phrase: Optional[str],
                                                       last_name_phrase: Optional[str],
+                                                      is_alternative: Optional[bool],
                                                       expected_persons: List[PersonInput]) -> None:
     try:
         # Arrange
@@ -78,7 +80,8 @@ def test_search_by_phrases_should_return_200_response(client, monkeypatch,
         response = client.get("/search_by_phrases",
                               params={'first_name_phrase': first_name_phrase,
                                       'last_name_phrase': last_name_phrase,
-                                      'is_ordered': False})
+                                      'is_ordered': False,
+                                      'is_alternative': is_alternative})
 
         # Assert
         assert response.status_code == status.HTTP_200_OK

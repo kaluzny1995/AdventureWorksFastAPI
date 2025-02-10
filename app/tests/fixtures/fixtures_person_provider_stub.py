@@ -12,7 +12,8 @@ class PersonProviderStub(IPersonProvider):
 
     def get_persons(self, filters: Optional[str] = None,
                     order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
-                    limit: Optional[int] = None, offset: Optional[int] = None) -> List[Person]:
+                    limit: Optional[int] = None, offset: Optional[int] = None,
+                    is_alternative: Optional[bool] = False) -> List[Person]:
         """ Returns list of appropriate persons """
         return self.data
 

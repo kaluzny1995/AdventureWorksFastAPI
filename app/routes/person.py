@@ -124,13 +124,16 @@ def delete_person(person_id: int,
             responses=get_response_models(List[Person], [200, 400, 404, 500]))
 def search_by_phrases(first_name_phrase: Optional[str] = None,
                       last_name_phrase: Optional[str] = None,
-                      is_ordered: Optional[bool] = True) -> List[Person]:
+                      is_ordered: Optional[bool] = True,
+                      is_alternative: Optional[bool] = False,
+                      is_raised_error_if_empty: Optional[bool] = True) -> List[Person]:
     if first_name_phrase == "":
         first_name_phrase = None
     if last_name_phrase == "":
         last_name_phrase = None
     try:
-        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase, is_ordered)
+        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase,
+                                                        is_ordered, is_alternative, is_raised_error_if_empty)
         return persons
     except errors.EmptyFieldsError as e:
         raise_400(e)

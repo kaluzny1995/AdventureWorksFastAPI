@@ -39,12 +39,14 @@ def adjust_filter_params(filter_params: Dict[str, str]) -> Dict[str, Union[int, 
         2) {'pt': "3", 'fnph': "Joh", 'lnph': "D"}
         3) {'pt': "3", 'fnph': "[Joh|Doe|Foe]", 'lnph': "D"}
         4) {'pt': "3.1", 'fnph': "Joh", 'lnph': "[3|6|21]"}
+        4) {'pt': "3.1", 'fnph': "Joh", 'lnph': "[]"}
 
     Should return:
         1) {'pt': "GC", 'fnph': "Joh", 'lnph': "D"}
         2) {'pt': 3, 'fnph': "Joh", 'lnph': "D"}
         3) {'pt': 3, 'fnph': ["Joh", "Doe", "Foe"], 'lnph': "D"}
         4) {'pt': 3.1, 'fnph': "Joh", 'lnph': [3, 6, 21]}
+        4) {'pt': 3.1, 'fnph': "Joh", 'lnph': []}
     """
 
     def __is_int(v: str) -> bool:
@@ -77,6 +79,9 @@ def adjust_filter_params(filter_params: Dict[str, str]) -> Dict[str, Union[int, 
 
     def __get_list(v: str) -> Union[List[int], List[float], List[str]]:
         """ Returns a list of integer, float or string values from given string value"""
+        if v[1:-1] == "":
+            return []
+
         vl = v[1:-1].split("|")
         if __is_list_of_ints(vl):
             return list(map(lambda k: int(k), vl))
