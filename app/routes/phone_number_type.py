@@ -6,6 +6,7 @@ from app.config import DefaultQueryParamsConfig
 from app.models import (EOrderType, AWFAPIUser, PhoneNumberTypeInput, PhoneNumberType,
                         CountMessage, ResponseMessage, get_response_models)
 from app.providers import PhoneNumberTypeProvider
+from app.services import PersonPhoneService
 
 from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_422, raise_500
@@ -15,6 +16,7 @@ router: APIRouter = APIRouter()
 
 default_params: DefaultQueryParamsConfig = DefaultQueryParamsConfig.from_json(entity="phone_number_type")
 phone_number_type_provider: PhoneNumberTypeProvider = PhoneNumberTypeProvider()
+person_phone_service: PersonPhoneService = PersonPhoneService()
 
 
 @router.get("/get_phone_number_types", tags=["Phone Number Types"],
@@ -107,10 +109,13 @@ def update_phone_number_type(phone_number_type_id: int,
 def delete_phone_number_type(phone_number_type_id: int,
                              _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> ResponseMessage:
     try:
+        person_phone_service.has_phone_number_type_person_phones(phone_number_type_id)
         phone_number_type_provider.delete_phone_number_type(phone_number_type_id)
         return ResponseMessage(title="Phone number type deleted.",
                                description=f"Phone number type of given id '{phone_number_type_id}' deleted.",
                                code=status.HTTP_200_OK)
+    except errors.ExistingDependentEntityError as e:
+        raise_400(e)
     except errors.NotFoundError as e:
         raise_404(e, "Phone number type", phone_number_type_id)
     except Exception as e:

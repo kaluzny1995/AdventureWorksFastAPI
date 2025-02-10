@@ -12,7 +12,8 @@ class PersonProviderStub(IPersonProvider):
 
     def get_persons(self, filters: Optional[str] = None,
                     order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
-                    limit: Optional[int] = None, offset: Optional[int] = None):
+                    limit: Optional[int] = None, offset: Optional[int] = None,
+                    is_alternative: Optional[bool] = False) -> List[Person]:
         """ Returns list of appropriate persons """
         return self.data
 
@@ -20,18 +21,18 @@ class PersonProviderStub(IPersonProvider):
         """ Returns count of appropriate persons """
         return len(self.data)
 
-    def get_person(self, person_id: int):
+    def get_person(self, person_id: int) -> Person:
         """ Returns person of given person_id """
         pass
 
-    def insert_person(self, person_input: PersonInput):
+    def insert_person(self, person_input: PersonInput) -> int:
         """ Inserts person and returns new person person_id """
         pass
 
-    def update_person(self, person_id: int, person_input: PersonInput):
+    def update_person(self, person_id: int, person_input: PersonInput) -> int:
         """ Updates person of given person_id and return updated person person_id """
         pass
 
-    def delete_person(self, person_id: int):
+    def delete_person(self, person_id: int) -> None:
         """ Deletes person of given person_id """
         pass

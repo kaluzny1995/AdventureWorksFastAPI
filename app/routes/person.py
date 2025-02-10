@@ -5,7 +5,7 @@ from app import errors
 from app.config import DefaultQueryParamsConfig
 from app.models import EOrderType, AWFAPIUser, PersonInput, Person, CountMessage, ResponseMessage, get_response_models
 from app.providers import PersonProvider
-from app.services import PersonService
+from app.services import PersonService, PersonPhoneService
 
 from app.oauth2_handlers import get_current_user, get_current_nonreadonly_user
 from app.error_handlers import raise_400, raise_404, raise_422, raise_500
@@ -16,6 +16,7 @@ router: APIRouter = APIRouter()
 default_params: DefaultQueryParamsConfig = DefaultQueryParamsConfig.from_json(entity="person")
 person_provider: PersonProvider = PersonProvider()
 person_service: PersonService = PersonService()
+person_phone_service: PersonPhoneService = PersonPhoneService()
 
 
 @router.get("/get_persons", tags=["Persons"],
@@ -106,10 +107,13 @@ def update_person(person_id: int,
 def delete_person(person_id: int,
                   _: AWFAPIUser = Depends(get_current_nonreadonly_user)) -> ResponseMessage:
     try:
+        person_phone_service.has_person_person_phones(person_id)
         person_provider.delete_person(person_id)
         return ResponseMessage(title="Person deleted.",
                                description=f"Person of given id '{person_id}' deleted.",
                                code=status.HTTP_200_OK)
+    except errors.ExistingDependentEntityError as e:
+        raise_400(e)
     except errors.NotFoundError as e:
         raise_404(e, "Person", person_id)
     except Exception as e:
@@ -120,13 +124,16 @@ def delete_person(person_id: int,
             responses=get_response_models(List[Person], [200, 400, 404, 500]))
 def search_by_phrases(first_name_phrase: Optional[str] = None,
                       last_name_phrase: Optional[str] = None,
-                      is_ordered: Optional[bool] = True) -> List[Person]:
+                      is_ordered: Optional[bool] = True,
+                      is_alternative: Optional[bool] = False,
+                      is_raised_error_if_empty: Optional[bool] = True) -> List[Person]:
     if first_name_phrase == "":
         first_name_phrase = None
     if last_name_phrase == "":
         last_name_phrase = None
     try:
-        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase, is_ordered)
+        persons = person_service.get_persons_by_phrases(first_name_phrase, last_name_phrase,
+                                                        is_ordered, is_alternative, is_raised_error_if_empty)
         return persons
     except errors.EmptyFieldsError as e:
         raise_400(e)

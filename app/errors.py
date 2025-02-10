@@ -28,6 +28,11 @@ class NotFoundError(Exception):
     pass
 
 
+class ExistingDependentEntityError(Exception):
+    """ Raised when attempting to delete the entry which has got existing foreign key references in other entity """
+    pass
+
+
 class IntegrityError(Exception):
     """ Raised when the insertion/update violates some object db constraints """
     pass

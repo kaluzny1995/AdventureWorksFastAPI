@@ -14,7 +14,9 @@ class PersonService:
     def get_persons_by_phrases(self,
                                first_name_phrase: Optional[str] = None,
                                last_name_phrase: Optional[str] = None,
-                               is_ordered: Optional[bool] = True) -> List[Person]:
+                               is_ordered: Optional[bool] = True,
+                               is_alternative: Optional[bool] = False,
+                               is_raised_error_if_empty: Optional[bool] = True) -> List[Person]:
 
         if first_name_phrase is not None and last_name_phrase is not None:
             filter_string = f"first_name_phrase:{first_name_phrase},last_name_phrase:{last_name_phrase}"
@@ -28,9 +30,11 @@ class PersonService:
 
         found_persons = self.person_provider.get_persons(filters=filter_string,
                                                          order_by="full_name" if is_ordered else None,
-                                                         order_type=EOrderType.ASC)
+                                                         order_type=EOrderType.ASC,
+                                                         limit=None, offset=None,
+                                                         is_alternative=is_alternative)
 
-        if len(found_persons) == 0:
+        if is_raised_error_if_empty and len(found_persons) == 0:
             raise errors.NotFoundError(f"{E404NotFound.PERSON_NOT_FOUND}: Persons of given phrases not found.")
 
         return found_persons

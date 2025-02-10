@@ -1,0 +1,6 @@
+from app.factories.mongodb_factory import MongoDBFactory
+from app.factories.postgresdb_factory import PostgresDBFactory
+from app.factories.awfapi_user_factory import AWFAPIUserFactory
+from app.factories.jwt_authentication_factory import JWTAuthenticationFactory
+
+from app.factories.person_phone_factory import PersonPhoneFactory

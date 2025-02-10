@@ -12,7 +12,7 @@ class PhoneNumberTypeProviderStub(IPhoneNumberTypeProvider):
 
     def get_phone_number_types(self, filters: Optional[str] = None,
                                order_by: Optional[str] = None, order_type: Optional[EOrderType] = None,
-                               limit: Optional[int] = None, offset: Optional[int] = None):
+                               limit: Optional[int] = None, offset: Optional[int] = None) -> List[PhoneNumberType]:
         """ Returns list of appropriate phone number types """
         return self.data
 
@@ -20,18 +20,18 @@ class PhoneNumberTypeProviderStub(IPhoneNumberTypeProvider):
         """ Returns count of appropriate phone number types """
         return len(self.data)
 
-    def get_phone_number_type(self, phone_number_type_id: int):
+    def get_phone_number_type(self, phone_number_type_id: int) -> PhoneNumberType:
         """ Returns phone number type of given phone_number_type_id """
         pass
 
-    def insert_phone_number_type(self, phone_number_type_input: PhoneNumberTypeInput):
+    def insert_phone_number_type(self, phone_number_type_input: PhoneNumberTypeInput) -> int:
         """ Inserts phone number type and returns new phone number type phone_number_type_id """
         pass
 
-    def update_phone_number_type(self, phone_number_type_id: int, phone_number_type_input: PhoneNumberTypeInput):
+    def update_phone_number_type(self, phone_number_type_id: int, phone_number_type_input: PhoneNumberTypeInput) -> int:
         """ Updates phone number type of given phone_number_type_id and returns updated phone number type phone_number_type_id """
         pass
 
-    def delete_phone_number_type(self, phone_number_type_id: int):
+    def delete_phone_number_type(self, phone_number_type_id: int) -> None:
         """ Deletes phone number type of given phone_number_type_id """
         pass

@@ -39,6 +39,13 @@
       "order_type": "asc",
       "offset": 0,
       "limit": 10
+    },
+    "person_phone": {
+      "filters": null,
+      "order_by": null,
+      "order_type": "asc",
+      "offset": 0,
+      "limit": 10
     }
   },
   "table_details": {
@@ -63,11 +70,7 @@
       "keys": {
         "primary": ["BusinessEntityID"],
         "foreign": {
-          "business_entity": {
-            "columns": ["BusinessEntityID"],
-            "schema_name": "Person",
-            "table": "BusinessEntity"
-          }
+          "business_entity": ["BusinessEntityID"]
         }
       }
     },
@@ -79,6 +82,20 @@
       ],
       "keys": {
         "primary": ["PhoneNumberTypeID"]
+      }
+    },
+    "person_phone": {
+      "schema_name": "Person",
+      "table": "PersonPhone",
+      "columns": [
+        "BusinessEntityID", "PhoneNumber", "PhoneNumberTypeID", "ModifiedDate"
+      ],
+      "keys": {
+        "primary": ["BusinessEntityID", "PhoneNumber", "PhoneNumberTypeID"],
+        "foreign": {
+          "person": ["BusinessEntityID"],
+          "phone_number_type": ["PhoneNumberTypeID"]
+        }
       }
     }
   }
