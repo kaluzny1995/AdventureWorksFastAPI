@@ -1,5 +1,6 @@
 import sqlalchemy
 import pymongo
+from typing import List, Tuple
 from sqlmodel import SQLModel
 from starlette.testclient import TestClient
 
@@ -29,22 +30,19 @@ def obtain_access_token(client: TestClient, awfapi_registered_user: AWFAPIRegist
     return token.access_token
 
 
-def insert_test_persons(engine: sqlalchemy.engine.Engine, connection_string: str) -> None:
+def insert_test_persons(engine: sqlalchemy.engine.Engine, connection_string: str) -> List[int]:
     person_provider = PersonProvider(connection_string, BusinessEntityProvider(connection_string, engine), engine)
-    for person in persons_db:
-        person_provider.insert_person(person)
+    return list(map(lambda person: person_provider.insert_person(person), persons_db))
 
 
-def insert_test_phone_number_types(engine: sqlalchemy.engine.Engine, connection_string: str) -> None:
+def insert_test_phone_number_types(engine: sqlalchemy.engine.Engine, connection_string: str) -> List[int]:
     phone_number_type_provider = PhoneNumberTypeProvider(connection_string, engine)
-    for phone_number_type in phone_number_types_db:
-        phone_number_type_provider.insert_phone_number_type(phone_number_type)
+    return list(map(lambda phone_number_type: phone_number_type_provider.insert_phone_number_type(phone_number_type), phone_number_types_db))
 
 
-def insert_test_person_phones(engine: sqlalchemy.engine.Engine, connection_string: str) -> None:
+def insert_test_person_phones(engine: sqlalchemy.engine.Engine, connection_string: str) -> List[Tuple[int, str, int]]:
     person_phone_provider = PersonPhoneProvider(connection_string, engine)
-    for person_phone in person_phones_db:
-        person_phone_provider.insert_person_phone(person_phone)
+    return list(map(lambda person_phone: person_phone_provider.insert_person_phone(person_phone), person_phones_db))
 
 
 def drop_collection(engine: pymongo.MongoClient, name: str) -> None:

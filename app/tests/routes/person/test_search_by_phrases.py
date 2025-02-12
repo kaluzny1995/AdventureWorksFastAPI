@@ -1,35 +1,26 @@
 import pytest
-import sqlalchemy
-from sqlmodel import create_engine
 from typing import Optional, List
 from starlette.testclient import TestClient
 from fastapi import status
+from pytest import MonkeyPatch
 
-from app.config import PostgresdbConnectionConfig
-from app.models import ResponseMessage, EPersonType, PersonInput, Person, \
-    E400BadRequest, E404NotFound
-from app.providers import BusinessEntityProvider, PersonProvider
-from app.services import PersonService
+from app.models import (ResponseMessage, PersonInput, Person,
+                        E400BadRequest, E404NotFound)
+from app.factories import (MongoDBFactory, PostgresDBFactory, AWFAPIUserFactory, JWTAuthenticationFactory,
+                           PersonFactory)
 
 from app.routes import person as person_routes
 
-from app.tests.fixtures.fixtures_tests import create_tables, drop_tables
+from app.tests.fixtures.fixtures_entry_lists import persons_db
+from app.tests.fixtures.fixtures_tests import insert_test_persons, create_tables, drop_tables
 
 
-postgresdb_connection_string: str = PostgresdbConnectionConfig.get_db_connection_string(test_suffix="_test")
-postgresdb_engine: sqlalchemy.engine.Engine = create_engine(postgresdb_connection_string)
-business_entity_provider: BusinessEntityProvider = BusinessEntityProvider(
-    connection_string=postgresdb_connection_string,
-    db_engine=postgresdb_engine
-)
-person_provider: PersonProvider = PersonProvider(
-    connection_string=postgresdb_connection_string,
-    business_entity_provider=business_entity_provider,
-    db_engine=postgresdb_engine
-)
-person_service: PersonService = PersonService(
-    person_provider=person_provider
-)
+mongodb_connection_string, mongodb_collection_name, mongodb_engine = MongoDBFactory.get_db_connection_details(test_suffix="_test")
+awfapi_user_provider, awfapi_user_service = AWFAPIUserFactory.get_provider_and_service(mongodb_connection_string, mongodb_collection_name, mongodb_engine)
+jwt_authentication_service = JWTAuthenticationFactory.get_service(awfapi_user_provider, awfapi_user_service)
+
+postgresdb_connection_string, postgresdb_engine = PostgresDBFactory.get_db_connection_details(test_suffix="_test")
+person_provider, person_service = PersonFactory.get_provider_and_service(postgresdb_connection_string, postgresdb_engine)
 
 
 @pytest.fixture()
@@ -40,18 +31,17 @@ def client():
         yield test_client
 
 
-persons_db: List[PersonInput] = [
-    PersonInput(person_type=EPersonType.GC, first_name="John", last_name="Doe"),
-    PersonInput(person_type=EPersonType.EM, first_name="John", last_name="Smith"),
-    PersonInput(person_type=EPersonType.IN, first_name="John", last_name="Adams"),
-    PersonInput(person_type=EPersonType.VC, first_name="John", middle_name="K", last_name="Adams"),
-    PersonInput(person_type=EPersonType.SP, first_name="John", middle_name="J", last_name="Adams"),
-    PersonInput(person_type=EPersonType.GC, first_name="Brian", last_name="Washer"),
-    PersonInput(person_type=EPersonType.SC, first_name="Aaron", last_name="Dasmi"),
-    PersonInput(person_type=EPersonType.SC, first_name="Aaron", last_name="Washington"),
-    PersonInput(person_type=EPersonType.SC, first_name="Sharon", last_name="Smith"),
-    PersonInput(person_type=EPersonType.SC, first_name="Claire", last_name="Smith"),
-]
+def fixtures_before_test(monkeypatch: MonkeyPatch) -> None:
+    create_tables(postgresdb_engine)
+
+    monkeypatch.setattr(person_routes, 'person_provider', person_provider)
+    monkeypatch.setattr(person_routes, 'person_service', person_service)
+
+    insert_test_persons(postgresdb_engine, postgresdb_connection_string)
+
+
+def fixtures_after_test() -> None:
+    drop_tables(postgresdb_engine)
 
 
 @pytest.mark.parametrize("first_name_phrase, last_name_phrase, is_alternative, expected_persons", [
@@ -68,13 +58,7 @@ def test_search_by_phrases_should_return_200_response(client, monkeypatch,
                                                       expected_persons: List[PersonInput]) -> None:
     try:
         # Arrange
-        create_tables(postgresdb_engine)
-
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
-        monkeypatch.setattr(person_routes, 'person_service', person_service)
-
-        for pdb in persons_db:
-            person_provider.insert_person(pdb)
+        fixtures_before_test(monkeypatch)
 
         # Act
         response = client.get("/search_by_phrases",
@@ -104,10 +88,10 @@ def test_search_by_phrases_should_return_200_response(client, monkeypatch,
             assert p.modified_date is not None
 
     except Exception as e:
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
         raise e
     else:
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
 
 
 @pytest.mark.parametrize("first_name_phrase, last_name_phrase, expected_message", [
@@ -126,13 +110,7 @@ def test_search_by_phrases_should_return_400_response(client, monkeypatch,
                                                       expected_message: ResponseMessage) -> None:
     try:
         # Arrange
-        create_tables(postgresdb_engine)
-
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
-        monkeypatch.setattr(person_routes, 'person_service', person_service)
-
-        for pdb in persons_db:
-            person_provider.insert_person(pdb)
+        fixtures_before_test(monkeypatch)
 
         # Act
         response = client.get("/search_by_phrases",
@@ -145,10 +123,10 @@ def test_search_by_phrases_should_return_400_response(client, monkeypatch,
         assert message.code == expected_message.code
 
     except Exception as e:
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
         raise e
     else:
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
 
 
 @pytest.mark.parametrize("first_name_phrase, last_name_phrase, expected_message", [
@@ -179,13 +157,7 @@ def test_search_by_phrases_should_return_404_response(client, monkeypatch,
                                                       expected_message: ResponseMessage) -> None:
     try:
         # Arrange
-        create_tables(postgresdb_engine)
-
-        monkeypatch.setattr(person_routes, 'person_provider', person_provider)
-        monkeypatch.setattr(person_routes, 'person_service', person_service)
-
-        for pdb in persons_db:
-            person_provider.insert_person(pdb)
+        fixtures_before_test(monkeypatch)
 
         # Act
         response = client.get(f"/search_by_phrases",
@@ -198,7 +170,7 @@ def test_search_by_phrases_should_return_404_response(client, monkeypatch,
         assert message.code == expected_message.code
 
     except Exception as e:
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()
         raise e
     else:
-        drop_tables(postgresdb_engine)
+        fixtures_after_test()

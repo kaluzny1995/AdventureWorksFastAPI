@@ -3,4 +3,6 @@ from app.factories.postgresdb_factory import PostgresDBFactory
 from app.factories.awfapi_user_factory import AWFAPIUserFactory
 from app.factories.jwt_authentication_factory import JWTAuthenticationFactory
 
+from app.factories.person_factory import PersonFactory
+from app.factories.phone_number_type_factory import PhoneNumberTypeFactory
 from app.factories.person_phone_factory import PersonPhoneFactory
