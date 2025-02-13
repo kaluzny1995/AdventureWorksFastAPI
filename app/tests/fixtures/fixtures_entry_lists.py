@@ -1,13 +1,34 @@
 import datetime as dt
 from typing import List
 
-from app.models import AWFAPIRegisteredUser, PersonInput, EPersonType, PhoneNumberTypeInput, PersonPhoneInput, PersonPhone
+from app.models import (AWFAPIUserInput, AWFAPIRegisteredUser, PersonInput, EPersonType,
+                        PhoneNumberTypeInput, PersonPhoneInput, PersonPhone)
 
+
+awfapi_users_db = [
+    AWFAPIUserInput(username="dzhawaria", full_name="Dzhejkob Awaria", email="dzh.awaria@gmail.com",
+                    is_readonly=False, hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6"),
+    AWFAPIUserInput(username="testuser2", full_name="Test User 2", email="test.user2@test.user",
+                    is_readonly=True, hashed_password="$2b$12$dQfVWYA0ko8tjyqglzHd4.2i9lY4x48Q08YsVSMWEIpPqXXTGRkwS"),
+    AWFAPIUserInput(username="testuser22", full_name="Test User 22", email="test.user22@test.user",
+                    is_readonly=True, hashed_password="$2b$12$Mvf8/LwNEue1qQrh.UUAruWnIOaIYgYIAQ3vtEqOYQg7/xlJ.XSB6")
+]
+
+awfapi_user: AWFAPIUserInput = AWFAPIUserInput(username="testuser", full_name="Test User",
+                                               email="test.user@test.user", is_readonly=True,
+                                               hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6")
+awfapi_user2: AWFAPIUserInput = AWFAPIUserInput(username="testuser2", full_name="Test User 2",
+                                                email="test.user2@test.user", is_readonly=True,
+                                                hashed_password="$2b$12$1MPiN.NRShpEI/WzKmsPLemaT3d6paLBXi3t3KFBHFlyXUrKgixF6")
 
 awfapi_nonreadonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
                                                                      repeated_password="testpassword",
                                                                      full_name="Test AWFAPIUserInput",
                                                                      email="test.user@test.user", is_readonly=False)
+awfapi_nonreadonly_user2: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser2", password="testpassword2",
+                                                                      repeated_password="testpassword2",
+                                                                      full_name="Test User 2",
+                                                                      email="test.user2@test.user", is_readonly=False)
 awfapi_readonly_user: AWFAPIRegisteredUser = AWFAPIRegisteredUser(username="testuser", password="testpassword",
                                                                   repeated_password="testpassword",
                                                                   full_name="Test AWFAPIUserInput",

@@ -5,10 +5,12 @@ from sqlmodel import SQLModel
 from starlette.testclient import TestClient
 
 from app.models import AWFAPIRegisteredUser, Token
-from app.providers import BusinessEntityProvider, PersonProvider, PhoneNumberTypeProvider, PersonPhoneProvider
+from app.providers import (AWFAPIUserProvider,
+                           BusinessEntityProvider, PersonProvider, PhoneNumberTypeProvider, PersonPhoneProvider)
 from app.services import AWFAPIUserService
 
-from app.tests.fixtures.fixtures_entry_lists import persons_db, phone_number_types_db, person_phones_db
+from app.tests.fixtures.fixtures_entry_lists import (awfapi_users_db,
+                                                     persons_db, phone_number_types_db, person_phones_db)
 
 
 def create_tables(engine: sqlalchemy.engine.Engine) -> None:
@@ -28,6 +30,11 @@ def obtain_access_token(client: TestClient, awfapi_registered_user: AWFAPIRegist
                                            'password': awfapi_registered_user.password})
     token = Token(**response.json())
     return token.access_token
+
+
+def insert_test_awfapi_users(connection_string: str, collection_name: str, engine: pymongo.MongoClient) -> List[str]:
+    awfapi_user_provider = AWFAPIUserProvider(connection_string, collection_name, engine)
+    return list(map(lambda audb: awfapi_user_provider.insert_awfapi_user(audb), awfapi_users_db))
 
 
 def insert_test_persons(engine: sqlalchemy.engine.Engine, connection_string: str) -> List[int]:
