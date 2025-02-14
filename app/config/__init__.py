@@ -1,4 +1,5 @@
 from app.config.app_run_config import AppRunConfig
+from app.config.cors_middleware_config import CORSMiddlewareConfig
 from app.config.app_metadata_config import AppMetadataConfig
 from app.config.table_details_config import TableDetailsConfig
 from app.config.default_query_params_config import DefaultQueryParamsConfig

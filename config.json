@@ -5,6 +5,12 @@
     "reload": true,
     "log_level": "debug"
   },
+  "cors_middleware": {
+    "allow_origins": ["*"],
+    "allow_credentials": true,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"]
+  },
   "postgresdb_connection": {
     "username": "postgres",
     "password": "my_password",
